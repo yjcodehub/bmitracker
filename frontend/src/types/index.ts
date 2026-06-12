@@ -15,6 +15,7 @@ export interface User {
     fullName: string;
     membershipNumber: string;
   };
+  createdAt?: string;
 }
 
 export interface Member {

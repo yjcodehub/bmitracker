@@ -43,6 +43,12 @@ export interface IEmailSettings {
 export interface ISettings extends Document {
   gymName: string;
   ownerId?: Schema.Types.ObjectId;
+  address?: string;
+  openingTime?: string;
+  closingTime?: string;
+  contactNumber?: string;
+  website?: string;
+  gstNumber?: string;
   theme: ITheme;
   bmiRules: IBMIRule[];
   bodyCompositionRules: IBodyCompositionRules;
@@ -101,6 +107,12 @@ const settingsSchema = new Schema<ISettings>(
   {
     gymName: { type: String, required: true, default: 'My Gym' },
     ownerId: { type: Schema.Types.ObjectId, ref: 'User' },
+    address: { type: String, default: '' },
+    openingTime: { type: String, default: '06:00' },
+    closingTime: { type: String, default: '22:00' },
+    contactNumber: { type: String, default: '' },
+    website: { type: String, default: '' },
+    gstNumber: { type: String, default: '' },
     theme: {
       primaryColor: { type: String, default: '#F97316' },
       secondaryColor: { type: String, default: '#0A0A0A' },
