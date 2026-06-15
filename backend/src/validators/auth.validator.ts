@@ -10,6 +10,7 @@ export const registerSchema = z.object({
   height: z.number().min(50).max(300),
   currentWeight: z.number().min(20).max(500),
   weightLossGoal: z.number().min(0).optional(),
+  role: z.enum(['member', 'staff', 'owner']).default('member'),
 });
 
 export const loginSchema = z.object({

@@ -15,8 +15,8 @@ app.use(
       const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:5000",
-        "http://192.168.1.112:3000",
-        "http://192.168.1.112:5000",
+        "http://192.168.1.101:3000",
+        "http://192.168.1.101:5000",
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {

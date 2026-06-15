@@ -15,14 +15,16 @@ export class AuthService {
     height: number;
     currentWeight: number;
     weightLossGoal?: number;
+    role?: 'member' | 'staff' | 'owner';
   }) {
     let settings = await Settings.findOne();
     if (!settings) {
       settings = await Settings.create({ gymName: 'My Gym' });
     }
 
-    const memberRole = await Role.findOne({ slug: 'member', isSystem: true });
-    if (!memberRole) throw new AppError('Member role not configured', 500);
+    const roleSlug = data.role || 'member';
+    const dbRole = await Role.findOne({ slug: roleSlug, isSystem: true });
+    if (!dbRole) throw new AppError(`${roleSlug} role not configured`, 500);
 
     const existing = await User.findOne({ gymId: settings._id, email: data.email });
     if (existing) throw new AppError('Email already registered', 409);
@@ -46,7 +48,7 @@ export class AuthService {
 
     const user = await User.create({
       gymId: settings._id,
-      roleId: memberRole._id,
+      roleId: dbRole._id,
       email: data.email,
       phone: data.phone,
       passwordHash,

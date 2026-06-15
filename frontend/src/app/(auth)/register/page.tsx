@@ -21,6 +21,7 @@ const registerSchema = z.object({
   height: z.coerce.number().min(50).max(300),
   currentWeight: z.coerce.number().min(20).max(500),
   weightLossGoal: z.coerce.number().min(0).optional(),
+  role: z.enum(['member', 'staff', 'owner']).default('member'),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -32,7 +33,7 @@ export default function RegisterPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { gender: 'male' },
+    defaultValues: { gender: 'male', role: 'member' },
   });
 
   const onSubmit = async (data: RegisterForm) => {
@@ -92,6 +93,15 @@ export default function RegisterPage() {
               <Label>Password</Label>
               <Input type="password" {...register('password')} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <select {...register('role')} className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value="member">Member</option>
+                <option value="staff">Staff</option>
+                <option value="owner">Gym Owner</option>
+              </select>
+              {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

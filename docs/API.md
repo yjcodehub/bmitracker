@@ -17,7 +17,7 @@ Base URL: `http://localhost:5000/api/v1`
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/auth/register` | Self-register member | Public |
+| POST | `/auth/register` | Self-register user (member, staff, owner) | Public |
 | POST | `/auth/login` | Email/password login | Public |
 | POST | `/auth/login/phone` | Phone + OTP login | Public |
 | POST | `/auth/otp/send` | Send OTP | Public |

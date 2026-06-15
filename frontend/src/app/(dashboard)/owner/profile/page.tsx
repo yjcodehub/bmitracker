@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { ProfileHeader, GymInformationCard } from "@/components/profile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { User } from "@/types";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/authStore";
 
 interface GymSettings {
   name?: string;
@@ -25,6 +26,22 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User>();
   const [gymSettings, setGymSettings] = useState<GymSettings>();
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -187,6 +204,23 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Logout Button */}
+        <div className="flex justify-center mt-8">
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-2 px-8 py-5 h-auto rounded-xl font-semibold text-base shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] w-full max-w-xs"
+          >
+            {isLoggingOut ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <LogOut className="h-5 w-5" />
+            )}
+            Logout
+          </Button>
         </div>
       </div>
     </div>

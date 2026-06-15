@@ -21,7 +21,7 @@
 
 **Goal:** Member management + BMI analysis
 
-- [ ] Member CRUD (admin create + self-register)
+- [x] Member CRUD (admin create + self-register)
 - [ ] Member approval workflow
 - [ ] Trainer management
 - [ ] BMI calculation engine with classification
@@ -115,15 +115,18 @@
 
 ## Priority Matrix
 
-| Feature | Priority | Phase |
-|---------|----------|-------|
-| Auth + RBAC | P0 | 1 |
-| Member CRUD | P0 | 2 |
-| BMI Analysis | P0 | 2 |
-| PDF Reports | P0 | 3 |
-| Owner Dashboard | P1 | 4 |
-| Diet Templates | P1 | 3 |
-| Backoffice Settings | P1 | 5 |
-| PWA | P1 | 6 |
-| Excel Export | P2 | 6 |
-| Multi-Gym | P3 | 7 |
+
+| Feature             | Priority | Phase |
+| ------------------- | -------- | ----- |
+| Auth + RBAC         | P0       | 1     |
+| Member CRUD         | P0       | 2     |
+| BMI Analysis        | P0       | 2     |
+| PDF Reports         | P0       | 3     |
+| Owner Dashboard     | P1       | 4     |
+| Diet Templates      | P1       | 3     |
+| Backoffice Settings | P1       | 5     |
+| PWA                 | P1       | 6     |
+| Excel Export        | P2       | 6     |
+| Multi-Gym           | P3       | 7     |
+
+
