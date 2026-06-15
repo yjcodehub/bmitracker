@@ -13,6 +13,9 @@ export interface IBodyComposition {
   legFat: number;
   muscleMass: number;
   bodyFatStatus: 'normal' | 'high' | 'risk';
+  trunkMuscleMass?: number;
+  armMuscleMass?: number;
+  legMuscleMass?: number;
 }
 
 export interface IBMIRecord extends Document {
@@ -47,6 +50,9 @@ const bodyCompositionSchema = new Schema<IBodyComposition>(
     legFat: { type: Number, required: true },
     muscleMass: { type: Number, required: true },
     bodyFatStatus: { type: String, enum: ['normal', 'high', 'risk'], required: true },
+    trunkMuscleMass: { type: Number, default: 0 },
+    armMuscleMass: { type: Number, default: 0 },
+    legMuscleMass: { type: Number, default: 0 },
   },
   { _id: false }
 );

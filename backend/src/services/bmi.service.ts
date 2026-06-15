@@ -23,6 +23,9 @@ export class BMIService {
     armFat: number;
     legFat: number;
     muscleMass: number;
+    trunkMuscleMass?: number;
+    armMuscleMass?: number;
+    legMuscleMass?: number;
     dietPlanId?: string;
     trainerNotes?: string;
     analysisDate?: Date;
@@ -61,6 +64,9 @@ export class BMIService {
         legFat: data.legFat,
         muscleMass: data.muscleMass,
         bodyFatStatus: evaluateBodyFat(data.bodyFatPercent, member.gender, rules),
+        trunkMuscleMass: data.trunkMuscleMass || 0,
+        armMuscleMass: data.armMuscleMass || 0,
+        legMuscleMass: data.legMuscleMass || 0,
       },
       dietPlanId: data.dietPlanId,
       trainerNotes: data.trainerNotes,

@@ -52,14 +52,22 @@ export function ProfileHeader({
         <div className="flex items-start gap-6">
           {/* Avatar Section */}
           <div className="relative">
-            <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-3xl font-bold">
-              {initials}
-            </div>
+            {user?.memberId?.profilePhoto ? (
+              <img
+                src={user.memberId.profilePhoto}
+                alt={user.memberId.fullName || "Profile"}
+                className="w-24 h-24 rounded-full object-cover border-2 border-primary"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-3xl font-bold font-mono">
+                {initials}
+              </div>
+            )}
             {onEditPhoto && (
               <Button
                 size="sm"
                 variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full w-10 h-10 p-0"
+                className="absolute bottom-0 right-0 rounded-full w-10 h-10 p-0 border shadow-sm"
                 onClick={onEditPhoto}
               >
                 <Camera className="h-4 w-4" />

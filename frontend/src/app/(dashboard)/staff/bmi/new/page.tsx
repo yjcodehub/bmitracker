@@ -26,6 +26,9 @@ const bmiSchema = z.object({
   armFat: z.coerce.number().min(0),
   legFat: z.coerce.number().min(0),
   muscleMass: z.coerce.number().min(0),
+  trunkMuscleMass: z.coerce.number().min(0),
+  armMuscleMass: z.coerce.number().min(0),
+  legMuscleMass: z.coerce.number().min(0),
   trainerNotes: z.string().optional(),
 });
 
@@ -45,12 +48,21 @@ export default function NewBMIPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<BMIForm>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<BMIForm>({
     resolver: zodResolver(bmiSchema),
     defaultValues: {
       memberId: preselectedMemberId,
     },
   });
+
+  const watchedWeight = watch("weight");
+  let calculatedBmi = 0;
+  if (selectedMember && watchedWeight) {
+    const heightInMeters = selectedMember.height / 100;
+    if (heightInMeters > 0) {
+      calculatedBmi = parseFloat((Number(watchedWeight) / (heightInMeters * heightInMeters)).toFixed(1));
+    }
+  }
 
   useEffect(() => {
     api
@@ -238,6 +250,18 @@ export default function NewBMIPage() {
                 {errors.weight && <p className="text-sm text-destructive">{errors.weight.message}</p>}
               </div>
               <div className="space-y-2">
+                <Label htmlFor="calculatedBmi">Calculated BMI</Label>
+                <Input
+                  id="calculatedBmi"
+                  type="number"
+                  value={calculatedBmi || ""}
+                  readOnly
+                  disabled={loading}
+                  className="bg-muted text-muted-foreground font-semibold"
+                  placeholder="Calculated automatically"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="bodyFatPercent">Body Fat % *</Label>
                 <Input id="bodyFatPercent" type="number" step="0.1" {...register("bodyFatPercent")} disabled={loading} />
                 {errors.bodyFatPercent && <p className="text-sm text-destructive">{errors.bodyFatPercent.message}</p>}
@@ -258,9 +282,24 @@ export default function NewBMIPage() {
                 {errors.bodyAge && <p className="text-sm text-destructive">{errors.bodyAge.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="muscleMass">Muscle Mass (kg) *</Label>
+                <Label htmlFor="muscleMass">Total Muscle Mass (kg) *</Label>
                 <Input id="muscleMass" type="number" step="0.1" {...register("muscleMass")} disabled={loading} />
                 {errors.muscleMass && <p className="text-sm text-destructive">{errors.muscleMass.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="trunkMuscleMass">Trunk Muscle Mass (kg) *</Label>
+                <Input id="trunkMuscleMass" type="number" step="0.1" {...register("trunkMuscleMass")} disabled={loading} />
+                {errors.trunkMuscleMass && <p className="text-sm text-destructive">{errors.trunkMuscleMass.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="armMuscleMass">Arms Muscle Mass (kg) *</Label>
+                <Input id="armMuscleMass" type="number" step="0.1" {...register("armMuscleMass")} disabled={loading} />
+                {errors.armMuscleMass && <p className="text-sm text-destructive">{errors.armMuscleMass.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="legMuscleMass">Legs Muscle Mass (kg) *</Label>
+                <Input id="legMuscleMass" type="number" step="0.1" {...register("legMuscleMass")} disabled={loading} />
+                {errors.legMuscleMass && <p className="text-sm text-destructive">{errors.legMuscleMass.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="totalBodyFat">Total Body Fat *</Label>

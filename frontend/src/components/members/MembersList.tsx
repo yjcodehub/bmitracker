@@ -20,6 +20,8 @@ export function MembersList() {
   const [activeTab, setActiveTab] = useState<"member" | "staff">("member");
   const [loading, setLoading] = useState(true);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [memberToApprove, setMemberToApprove] = useState<string | null>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   const statuses = [
@@ -67,15 +69,23 @@ export function MembersList() {
     };
   }, []);
 
-  const handleApprove = async (e: React.MouseEvent, id: string) => {
+  const handleApproveClick = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("Are you sure you want to approve this member?")) return;
+    setMemberToApprove(id);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!memberToApprove) return;
     try {
-      await api.post(`/members/${id}/approve`);
+      await api.post(`/members/${memberToApprove}/approve`);
       fetchMembers();
     } catch (err) {
       console.error("Failed to approve member:", err);
+    } finally {
+      setIsConfirmOpen(false);
+      setMemberToApprove(null);
     }
   };
 
@@ -224,7 +234,7 @@ export function MembersList() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={(e) => handleApprove(e, m._id)}
+                          onClick={(e) => handleApproveClick(e, m._id)}
                           className="h-8 text-xs text-green-600 border-green-200 bg-green-50/50 hover:bg-green-50"
                         >
                           <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
@@ -249,6 +259,39 @@ export function MembersList() {
               </Link>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {isConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-150">
+          <div className="bg-background rounded-lg border shadow-lg max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-6 space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">Approve Member Registration</h2>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to approve this member? This will activate their account and grant them access to the gym portal.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsConfirmOpen(false);
+                    setMemberToApprove(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleConfirmApprove}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                >
+                  Approve
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
