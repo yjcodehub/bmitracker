@@ -25,4 +25,5 @@ export const memberQuerySchema = z.object({
   search: z.string().optional(),
   status: z.enum(['pending_approval', 'active', 'inactive', 'archived']).optional(),
   trainerId: z.string().optional(),
+  role: z.enum(['member', 'staff', 'owner']).optional(),
 });

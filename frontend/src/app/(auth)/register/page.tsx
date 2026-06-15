@@ -10,37 +10,72 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
+import { Eye, EyeOff } from 'lucide-react';
 
 const registerSchema = z.object({
-  fullName: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(10).optional(),
-  password: z.string().min(8),
-  age: z.coerce.number().min(1).max(120),
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().min(10, 'Phone must be at least 10 digits').optional().or(z.literal('')),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters long')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_+\-*\/[\]\\`~';])/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    ),
+  confirmPassword: z.string().min(1, 'Confirm password is required'),
+  age: z.coerce.number().min(1, 'Age must be at least 1').max(120, 'Invalid age'),
   gender: z.enum(['male', 'female', 'other']),
-  height: z.coerce.number().min(50).max(300),
-  currentWeight: z.coerce.number().min(20).max(500),
+  height: z.coerce.number().min(50, 'Height must be at least 50 cm').max(300, 'Invalid height'),
+  currentWeight: z.coerce.number().min(20, 'Weight must be at least 20 kg').max(500, 'Invalid weight'),
   weightLossGoal: z.coerce.number().min(0).optional(),
   role: z.enum(['member', 'staff', 'owner']).default('member'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
+
+const getPasswordStrength = (password: string) => {
+  if (!password) return { score: 0, label: '', color: 'bg-gray-200', textColor: 'text-muted-foreground', width: 'w-0' };
+  
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[!@#$%^&*(),.?":{}|<>_+\-*\/[\]\\`~';]/.test(password)) score++;
+
+  if (score <= 2) {
+    return { score, label: 'Weak', color: 'bg-red-500', textColor: 'text-red-500', width: 'w-1/3' };
+  } else if (score <= 4) {
+    return { score, label: 'Good', color: 'bg-amber-500', textColor: 'text-amber-500', width: 'w-2/3' };
+  } else {
+    return { score, label: 'Best', color: 'bg-green-500', textColor: 'text-green-500', width: 'w-full' };
+  }
+};
 
 export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: { gender: 'male', role: 'member' },
   });
+
+  const watchedPassword = watch('password');
+  const strength = getPasswordStrength(watchedPassword || '');
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
     setError('');
     try {
-      await api.post('/auth/register', data);
+      const { confirmPassword, ...payload } = data;
+      await api.post('/auth/register', payload);
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -90,9 +125,53 @@ export default function RegisterPage() {
               <Input {...register('phone')} />
             </div>
             <div className="space-y-2">
-              <Label>Password</Label>
-              <Input type="password" {...register('password')} />
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="pr-10"
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {watchedPassword && (
+                <div className="space-y-1.5 mt-1">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className={`h-full transition-all duration-300 ${strength.color} ${strength.width}`} />
+                  </div>
+                  <p className={`text-xs font-semibold ${strength.textColor}`}>
+                    Password Strength: {strength.label}
+                  </p>
+                </div>
+              )}
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="pr-10"
+                  {...register('confirmPassword')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
             </div>
             <div className="space-y-2">
               <Label>Role</Label>

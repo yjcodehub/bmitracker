@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Plus, Search, ChevronRight, CheckCircle, Ban, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -17,13 +17,25 @@ export function MembersList() {
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"member" | "staff">("member");
   const [loading, setLoading] = useState(true);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  const statuses = [
+    { value: "all", label: "All Statuses" },
+    { value: "active", label: "Active" },
+    { value: "pending_approval", label: "Pending Approval" },
+    { value: "inactive", label: "Inactive" },
+    { value: "archived", label: "Archived" },
+  ];
 
   const fetchMembers = () => {
     setLoading(true);
     const paramsList: string[] = [];
     if (search) paramsList.push(`search=${encodeURIComponent(search)}`);
     if (status && status !== "all") paramsList.push(`status=${status}`);
+    if (role === "owner") paramsList.push(`role=${activeTab}`);
     
     const params = paramsList.length > 0 ? `?${paramsList.join("&")}` : "";
     api
@@ -41,7 +53,19 @@ export function MembersList() {
 
   useEffect(() => {
     fetchMembers();
-  }, [search, status]);
+  }, [search, status, activeTab]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setIsStatusOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleApprove = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -73,8 +97,8 @@ export function MembersList() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Members"
-        subtitle={`${members.length} members found`}
+        title={role === "owner" ? (activeTab === "staff" ? "Staff" : "Members") : "Members"}
+        subtitle={`${members.length} ${role === "owner" && activeTab === "staff" ? "staff" : "members"} found`}
         actions={
           <Button asChild size="sm">
             <Link href={`/${role}/members/new`}>
@@ -84,6 +108,31 @@ export function MembersList() {
           </Button>
         }
       />
+
+      {role === "owner" && (
+        <div className="flex bg-muted/60 p-1 rounded-lg w-fit border border-border">
+          <button
+            onClick={() => setActiveTab("member")}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === "member"
+                ? "bg-background text-foreground shadow-sm font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Members
+          </button>
+          <button
+            onClick={() => setActiveTab("staff")}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === "staff"
+                ? "bg-background text-foreground shadow-sm font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Staff
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
@@ -95,17 +144,35 @@ export function MembersList() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="h-10 px-3 py-2 border rounded-md bg-background text-sm min-w-[160px]"
-        >
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="pending_approval">Pending Approval</option>
-          <option value="inactive">Inactive</option>
-          <option value="archived">Archived</option>
-        </select>
+        <div className="relative w-full md:w-auto" ref={statusDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsStatusOpen(!isStatusOpen)}
+            className="flex items-center justify-between h-10 w-full md:w-auto px-3 py-2 border rounded-md bg-background text-sm min-w-[160px] text-left hover:bg-accent/50 transition-colors shadow-sm select-none"
+          >
+            <span>{statuses.find((s) => s.value === status)?.label || "All Statuses"}</span>
+            <span className="text-xs text-muted-foreground ml-2">▼</span>
+          </button>
+          {isStatusOpen && (
+            <div className="absolute right-0 z-10 w-full min-w-[160px] mt-1 bg-background border border-border rounded-md shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+              {statuses.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => {
+                    setStatus(s.value);
+                    setIsStatusOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    status === s.value ? "font-semibold text-primary" : "text-foreground"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (

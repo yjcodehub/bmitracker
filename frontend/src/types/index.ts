@@ -42,6 +42,14 @@ export interface Member {
   registrationDate: string;
   profilePhoto?: string;
   status: string;
+  userId?: {
+    _id: string;
+    roleId?: {
+      _id: string;
+      slug: UserRole;
+      name: string;
+    };
+  };
 }
 
 export interface BMIRecord {

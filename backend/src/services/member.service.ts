@@ -66,20 +66,62 @@ export class MemberService {
       search?: string;
       status?: string;
       trainerId?: string;
+      role?: string;
     }
   ) {
     const { skip, page, limit } = getPagination(options);
-    const filter: Record<string, unknown> = { gymId };
+    const conditions: Record<string, any>[] = [{ gymId }];
 
-    if (options.status) filter.status = options.status;
-    if (options.trainerId) filter.trainerId = options.trainerId;
-    if (options.search) {
-      filter.$text = { $search: options.search };
+    if (options.status) conditions.push({ status: options.status });
+    if (options.trainerId) conditions.push({ trainerId: options.trainerId });
+
+    if (options.role) {
+      const roleDoc = await Role.findOne({ slug: options.role, isSystem: true });
+      if (roleDoc) {
+        const users = await User.find({ gymId, roleId: roleDoc._id }).select('_id');
+        const userIds = users.map((u) => u._id);
+        
+        if (options.role === 'member') {
+          conditions.push({
+            $or: [
+              { userId: { $in: userIds } },
+              { userId: { $exists: false } },
+              { userId: null }
+            ]
+          });
+        } else {
+          conditions.push({ userId: { $in: userIds } });
+        }
+      } else {
+        conditions.push({ userId: null });
+      }
     }
+
+    if (options.search) {
+      const escapedSearch = options.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = { $regex: escapedSearch, $options: 'i' };
+      conditions.push({
+        $or: [
+          { fullName: searchRegex },
+          { email: searchRegex },
+          { membershipNumber: searchRegex },
+        ]
+      });
+    }
+
+    const filter = conditions.length > 1 ? { $and: conditions } : conditions[0];
 
     const [members, total] = await Promise.all([
       Member.find(filter)
         .populate('trainerId', 'name')
+        .populate({
+          path: 'userId',
+          select: 'roleId',
+          populate: {
+            path: 'roleId',
+            select: 'slug name',
+          },
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -90,7 +132,16 @@ export class MemberService {
   }
 
   async getById(id: string, gymId: string) {
-    const member = await Member.findOne({ _id: id, gymId }).populate('trainerId', 'name');
+    const member = await Member.findOne({ _id: id, gymId })
+      .populate('trainerId', 'name')
+      .populate({
+        path: 'userId',
+        select: 'roleId',
+        populate: {
+          path: 'roleId',
+          select: 'slug name',
+        },
+      });
     if (!member) throw new AppError('Member not found', 404);
     return member;
   }
