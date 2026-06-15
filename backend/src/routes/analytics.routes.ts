@@ -6,11 +6,11 @@ import { requirePermission } from '../middleware/rbac';
 const router = Router();
 
 router.use(authenticate);
-router.use(requirePermission('analytics:read'));
 
-router.get('/dashboard', analyticsController.dashboard);
-router.get('/bmi-distribution', analyticsController.bmiDistribution);
-router.get('/weight-trends', analyticsController.weightTrends);
-router.get('/member-growth', analyticsController.memberGrowth);
+router.get('/dashboard', requirePermission('analytics:read'), analyticsController.dashboard);
+router.get('/staff-dashboard', requirePermission('members:read'), analyticsController.staffDashboard);
+router.get('/bmi-distribution', requirePermission('analytics:read'), analyticsController.bmiDistribution);
+router.get('/weight-trends', requirePermission('analytics:read'), analyticsController.weightTrends);
+router.get('/member-growth', requirePermission('analytics:read'), analyticsController.memberGrowth);
 
 export default router;

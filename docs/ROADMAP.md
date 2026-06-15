@@ -22,13 +22,13 @@
 **Goal:** Member management + BMI analysis
 
 - [x] Member CRUD (admin create + self-register)
-- [ ] Member approval workflow
-- [ ] Trainer management
-- [ ] BMI calculation engine with classification
-- [ ] Body composition status evaluation
-- [ ] BMI analysis CRUD with history
-- [ ] Staff dashboard with quick actions
-- [ ] Member dashboard with current stats
+- [x] Member approval workflow
+- [x] Trainer management
+- [x] BMI calculation engine with classification
+- [x] Body composition status evaluation
+- [x] BMI analysis CRUD with history
+- [x] Staff dashboard with quick actions
+- [x] Member dashboard with current stats
 
 **Deliverable:** Staff can register members and record BMI analyses.
 

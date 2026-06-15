@@ -13,6 +13,15 @@ export class AnalyticsController {
     }
   }
 
+  async staffDashboard(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const data = await analyticsService.getStaffDashboard(req.user!.gymId);
+      sendSuccess(res, data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async bmiDistribution(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const data = await analyticsService.getBMIDistribution(req.user!.gymId);

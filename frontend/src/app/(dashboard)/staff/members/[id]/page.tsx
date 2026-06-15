@@ -2,6 +2,6 @@
 
 import { MemberDetails } from "@/components/members/MemberDetails";
 
-export default function MemberDetailsPage() {
+export default function StaffMemberDetailsPage() {
   return <MemberDetails />;
 }

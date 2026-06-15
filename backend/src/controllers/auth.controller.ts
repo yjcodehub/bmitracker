@@ -87,7 +87,7 @@ export class AuthController {
     try {
       const user = await User.findById(req.user!.userId)
         .populate('roleId', 'name slug')
-        .populate('memberId', 'fullName membershipNumber');
+        .populate('memberId');
       sendSuccess(res, user);
     } catch (err) {
       next(err);

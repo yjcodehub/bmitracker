@@ -40,6 +40,33 @@ export class AnalyticsService {
     };
   }
 
+  async getStaffDashboard(gymId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [
+      totalMembers,
+      pendingMembers,
+      todayAnalyses,
+      recentAnalyses,
+    ] = await Promise.all([
+      Member.countDocuments({ gymId }),
+      Member.countDocuments({ gymId, status: 'pending_approval' }),
+      BMIRecord.countDocuments({ gymId, analysisDate: { $gte: today } }),
+      BMIRecord.find({ gymId })
+        .sort({ analysisDate: -1 })
+        .limit(5)
+        .populate('memberId', 'fullName membershipNumber weight currentWeight'),
+    ]);
+
+    return {
+      totalMembers,
+      pendingMembers,
+      todayAnalyses,
+      recentAnalyses,
+    };
+  }
+
   async getBMIDistribution(gymId: string) {
     const gymObjectId = new mongoose.Types.ObjectId(gymId);
     const result = await BMIRecord.aggregate([

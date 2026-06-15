@@ -3,7 +3,7 @@
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { Palette, Scale, Dumbbell, Mail, Shield, FileText } from 'lucide-react';
+import { Palette, Scale, Dumbbell, Mail, Shield, FileText, UserCog } from 'lucide-react';
 
 const settingsLinks = [
   { href: '/owner/settings/theme', label: 'Theme Management', icon: Palette, desc: 'Colors, logo, gym name' },
@@ -12,6 +12,7 @@ const settingsLinks = [
   { href: '/owner/settings/email', label: 'Email Settings', icon: Mail, desc: 'SMTP and notification toggles' },
   { href: '/owner/settings/roles', label: 'RBAC & Permissions', icon: Shield, desc: 'Role management' },
   { href: '/owner/diet-plans', label: 'Diet Templates', icon: FileText, desc: 'Create and manage diet plans' },
+  { href: '/owner/settings/trainers', label: 'Trainer Management', icon: UserCog, desc: 'Manage gym trainers' },
 ];
 
 export default function SettingsPage() {

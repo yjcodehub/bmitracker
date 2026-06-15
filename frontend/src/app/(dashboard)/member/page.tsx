@@ -37,9 +37,29 @@ export default function MemberDashboard() {
       .catch(console.error);
   }, [memberId]);
 
-  const goalProgress = user?.memberId
-    ? '—'
-    : '—';
+  const getGoalProgress = () => {
+    const m = user?.memberId;
+    if (!m) return "—";
+    
+    const ideal = m.idealWeight;
+    const current = latest ? latest.weight : m.currentWeight;
+    
+    if (ideal) {
+      if (current <= ideal) {
+        return "Goal Achieved! 🎉";
+      }
+      const diff = current - ideal;
+      return `${diff.toFixed(1)} kg remaining`;
+    }
+    
+    if (m.weightLossGoal) {
+      return `Goal: Lose ${m.weightLossGoal} kg`;
+    }
+    
+    return "No goal set";
+  };
+
+  const goalProgress = getGoalProgress();
 
   return (
     <div>

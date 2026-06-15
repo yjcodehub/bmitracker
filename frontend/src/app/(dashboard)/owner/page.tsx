@@ -10,13 +10,14 @@ import { WeightTrendChart } from '@/components/charts/WeightTrendChart';
 import { api } from '@/lib/api';
 import { DashboardStats } from '@/types';
 import { formatDate } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export default function OwnerDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bmiDist, setBmiDist] = useState<{ category: string; count: number }[]>([]);
   const [weightTrends, setWeightTrends] = useState<{ date: string; avgWeight: number }[]>([]);
 
-  useEffect(() => {
+  const fetchDashboardStats = () => {
     Promise.all([
       api.get<DashboardStats>('/analytics/dashboard'),
       api.get<{ category: string; count: number }[]>('/analytics/bmi-distribution'),
@@ -26,7 +27,21 @@ export default function OwnerDashboard() {
       setBmiDist(dist.data);
       setWeightTrends(trends.data);
     }).catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchDashboardStats();
   }, []);
+
+  const handleApprove = async (id: string) => {
+    if (!confirm("Are you sure you want to approve this member?")) return;
+    try {
+      await api.post(`/members/${id}/approve`);
+      fetchDashboardStats();
+    } catch (err) {
+      console.error("Failed to approve member:", err);
+    }
+  };
 
   return (
     <div>
@@ -72,9 +87,20 @@ export default function OwnerDashboard() {
                   <p className="font-medium">{m.fullName}</p>
                   <p className="text-xs text-muted-foreground">{m.membershipNumber}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">{formatDate(m.registrationDate)}</p>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">{m.status}</span>
+                <div className="text-right flex items-center gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{formatDate(m.registrationDate)}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">{m.status.replace('_', ' ')}</span>
+                  </div>
+                  {m.status === "pending_approval" && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleApprove(m._id)}
+                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-7 px-2"
+                    >
+                      Approve
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

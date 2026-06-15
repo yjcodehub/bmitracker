@@ -10,12 +10,19 @@ export interface User {
     name: string;
     slug: UserRole;
   };
-  memberId?: {
-    _id: string;
-    fullName: string;
-    membershipNumber: string;
-  };
+  memberId?: Member;
   createdAt?: string;
+}
+
+export interface Trainer {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  specialization?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Member {
@@ -29,6 +36,7 @@ export interface Member {
   currentWeight: number;
   idealWeight?: number;
   weightLossGoal?: number;
+  trainerId?: string;
   trainerName?: string;
   membershipNumber: string;
   registrationDate: string;

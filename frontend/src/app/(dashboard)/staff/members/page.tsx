@@ -2,6 +2,6 @@
 
 import { MembersList } from "@/components/members/MembersList";
 
-export default function MembersPage() {
+export default function StaffMembersPage() {
   return <MembersList />;
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Member } from "@/types";
+import { Member, Trainer } from "@/types";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/authStore";
 
 interface MemberFormProps {
   member?: Member;
@@ -16,8 +17,10 @@ interface MemberFormProps {
 
 export function MemberForm({ member, onSubmit }: MemberFormProps) {
   const router = useRouter();
+  const role = useAuthStore((s) => s.user?.roleId?.slug || "member");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [formData, setFormData] = useState({
     fullName: member?.fullName || "",
     email: member?.email || "",
@@ -29,9 +32,22 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
     idealWeight: member?.idealWeight || "",
     weightLossGoal: member?.weightLossGoal || "",
     membershipNumber: member?.membershipNumber || "",
+    trainerId: member?.trainerId || "",
     trainerName: member?.trainerName || "",
     status: member?.status || "pending_approval",
   });
+
+  useEffect(() => {
+    api.get<Trainer[]>("/trainers?isActive=true")
+      .then((res) => {
+        // If trainer from API is returned, verify it's an array
+        if (Array.isArray(res.data)) {
+          setTrainers(res.data);
+          console.log("Trainers:", trainers);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch trainers:", err));
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -40,6 +56,16 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleTrainerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    const selectedTrainer = trainers.find((t) => t._id === selectedId);
+    setFormData((prev) => ({
+      ...prev,
+      trainerId: selectedId,
+      trainerName: selectedTrainer ? selectedTrainer.name : "",
     }));
   };
 
@@ -58,7 +84,8 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
         height: parseFloat(String(formData.height)),
         currentWeight: parseFloat(String(formData.currentWeight)),
         membershipNumber: formData.membershipNumber,
-        trainerName: formData.trainerName,
+        trainerId: formData.trainerId || undefined,
+        trainerName: formData.trainerName || undefined,
         status: formData.status as "active" | "inactive" | "pending_approval" | "archived",
         ...(formData.idealWeight && {
           idealWeight: parseFloat(String(formData.idealWeight)),
@@ -78,7 +105,7 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
       if (onSubmit) {
         onSubmit(response.data);
       } else {
-        router.push("/owner/members");
+        router.push(`/${role}/members`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save member");
@@ -185,14 +212,22 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
             </div>
 
             <div>
-              <Label htmlFor="trainerName">Trainer Name</Label>
-              <Input
-                id="trainerName"
-                name="trainerName"
-                value={formData.trainerName}
-                onChange={handleChange}
+              <Label htmlFor="trainerId">Assigned Trainer</Label>
+              <select
+                id="trainerId"
+                name="trainerId"
+                value={formData.trainerId}
+                onChange={handleTrainerChange}
                 disabled={loading}
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-background text-sm"
+              >
+                <option value="">No Trainer Assigned</option>
+                {trainers.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.name} {t.specialization ? `(${t.specialization})` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {member && (
