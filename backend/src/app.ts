@@ -18,6 +18,7 @@ app.use(
         "http://localhost:5000",
         "http://192.168.1.101:3000",
         "http://192.168.1.101:5000",
+        env.FRONTEND_URL,
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {

@@ -36,7 +36,6 @@ function MembersListContent() {
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"member" | "staff">("member");
   const [loading, setLoading] = useState(true);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -53,15 +52,11 @@ function MembersListContent() {
     { value: "archived", label: "Archived" },
   ];
 
-  // Initialize status and active tab from query params
+  // Initialize status from query params
   useEffect(() => {
     const statusParam = searchParams.get("status");
     if (statusParam) {
       setStatus(statusParam);
-    }
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "member" || tabParam === "staff") {
-      setActiveTab(tabParam);
     }
   }, [searchParams]);
 
@@ -72,7 +67,7 @@ function MembersListContent() {
     paramsList.push(`limit=10`);
     if (search) paramsList.push(`search=${encodeURIComponent(search)}`);
     if (status && status !== "all") paramsList.push(`status=${status}`);
-    if (role === "owner") paramsList.push(`role=${activeTab}`);
+    if (role === "owner") paramsList.push("role=member");
 
     const params = paramsList.length > 0 ? `?${paramsList.join("&")}` : "";
     api
@@ -102,11 +97,11 @@ function MembersListContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, status, activeTab]);
+  }, [search, status]);
 
   useEffect(() => {
     fetchMembers();
-  }, [page, search, status, activeTab]);
+  }, [page, search, status]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -158,49 +153,17 @@ function MembersListContent() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title={role === "owner" ? (activeTab === "staff" ? "Staff" : "Members") : "Members"}
-        subtitle={`${members.length} ${role === "owner" && activeTab === "staff" ? "staff" : "members"} found`}
+        title="Members"
+        subtitle={`${members.length} members found`}
         actions={
-          role === "owner" && activeTab === "staff" ? (
-            <Button asChild size="sm">
-              <Link href="/owner/members/new?role=staff">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Staff
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild size="sm">
-              <Link href={`/${role}/members/new`}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Member
-              </Link>
-            </Button>
-          )
+          <Button asChild size="sm">
+            <Link href={`/${role}/members/new`}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Member
+            </Link>
+          </Button>
         }
       />
-
-      {role === "owner" && (
-        <div className="flex bg-muted/60 p-1 rounded-lg w-fit border border-border">
-          <button
-            onClick={() => setActiveTab("member")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === "member"
-                ? "bg-background text-foreground shadow-sm font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-              }`}
-          >
-            Members
-          </button>
-          <button
-            onClick={() => setActiveTab("staff")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === "staff"
-                ? "bg-background text-foreground shadow-sm font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-              }`}
-          >
-            Staff
-          </button>
-        </div>
-      )}
 
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
@@ -324,7 +287,7 @@ function MembersListContent() {
               onPageChange={setPage}
               totalItems={pagination.total}
               limit={pagination.limit}
-              label={role === "owner" && activeTab === "staff" ? "staff members" : "members"}
+              label="members"
             />
           )}
         </div>
