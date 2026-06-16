@@ -10,6 +10,7 @@ export interface IUser extends Document {
   passwordHash: string;
   status: UserStatus;
   memberId?: Types.ObjectId;
+  profilePhoto?: string;
   refreshToken?: string;
   otpHash?: string;
   otpExpiresAt?: Date;
@@ -33,6 +34,7 @@ const userSchema = new Schema<IUser>(
       default: 'pending_verification',
     },
     memberId: { type: Schema.Types.ObjectId, ref: 'Member' },
+    profilePhoto: { type: String },
     refreshToken: { type: String, select: false },
     otpHash: { type: String, select: false },
     otpExpiresAt: { type: Date, select: false },

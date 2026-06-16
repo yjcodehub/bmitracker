@@ -94,6 +94,28 @@ export class AuthController {
     }
   }
 
+  async updateMe(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { profilePhoto, phone } = req.body;
+      const updateData: any = {};
+      if (profilePhoto !== undefined) updateData.profilePhoto = profilePhoto;
+      if (phone !== undefined) updateData.phone = phone;
+
+      const user = await User.findByIdAndUpdate(
+        req.user!.userId,
+        { $set: updateData },
+        { new: true }
+      )
+        .populate('roleId', 'name slug')
+        .populate('memberId');
+
+      if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+      sendSuccess(res, user, 'Profile updated successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async forgotPassword(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const result = await authService.forgotPassword(req.body.email);

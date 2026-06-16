@@ -20,6 +20,12 @@ export function ProfileHeader({
   onEditPhoto,
 }: ProfileHeaderProps) {
   const initials =
+    user?.memberId?.fullName
+      ?.split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ||
     user?.email
       ?.split("@")[0]
       ?.split(".")
@@ -29,10 +35,11 @@ export function ProfileHeader({
       .slice(0, 2) || "?";
 
   const fullName =
+    user?.memberId?.fullName ||
     user?.email
       ?.split("@")[0]
       ?.replace(/\./g, " ")
-      .replace(/^\w/, (c) => c.toUpperCase()) || "Owner";
+      .replace(/^\w/, (c) => c.toUpperCase()) || "User";
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -47,19 +54,19 @@ export function ProfileHeader({
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 overflow-hidden border border-border shadow-sm bg-gradient-to-r from-orange-500/5 via-transparent to-transparent">
       <CardContent className="p-6">
-        <div className="flex items-start gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
           {/* Avatar Section */}
-          <div className="relative">
-            {user?.memberId?.profilePhoto ? (
+          <div className="relative group shrink-0">
+            {user?.profilePhoto || user?.memberId?.profilePhoto ? (
               <img
-                src={user.memberId.profilePhoto}
-                alt={user.memberId.fullName || "Profile"}
-                className="w-24 h-24 rounded-full object-cover border-2 border-primary"
+                src={user?.profilePhoto || user?.memberId?.profilePhoto}
+                alt={fullName}
+                className="w-24 h-24 rounded-full object-cover border-4 border-background shadow-md transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-3xl font-bold font-mono">
+              <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white text-3xl font-bold font-mono border-4 border-background shadow-md">
                 {initials}
               </div>
             )}
@@ -67,7 +74,7 @@ export function ProfileHeader({
               <Button
                 size="sm"
                 variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full w-10 h-10 p-0 border shadow-sm"
+                className="absolute bottom-0 right-0 rounded-full w-9 h-9 p-0 border shadow-md hover:bg-primary hover:text-primary-foreground transition-all duration-200"
                 onClick={onEditPhoto}
               >
                 <Camera className="h-4 w-4" />
@@ -76,46 +83,38 @@ export function ProfileHeader({
           </div>
 
           {/* Profile Info */}
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold mb-1">{fullName}</h1>
-            <p className="text-muted-foreground mb-4">
-              {gymName || "Gym Owner"}
-            </p>
+          <div className="flex-1 space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-1">{fullName}</h2>
+              <p className="text-sm text-primary font-semibold tracking-wide uppercase">
+                {gymName || user?.roleId?.name || "Gym Owner"}
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-muted/50">
+              <div className="flex items-center justify-center sm:justify-start gap-3">
+                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm font-medium">{user?.email}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Email Address</p>
+                  <p className="text-sm font-medium text-foreground">{user?.email}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center justify-center sm:justify-start gap-3">
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="text-sm font-medium">
-                    {user?.phone || "Not set"}
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Contact Number</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {user?.phone || user?.memberId?.contactNumber || "Not set"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">Plan</span>
+              <div className="flex items-center justify-center sm:justify-start gap-3">
+                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">
-                    Membership Plan
-                  </p>
-                  <p className="text-sm font-medium capitalize">Premium</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Member Since</p>
-                  <p className="text-sm font-medium">{formatDate(joinDate)}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Member Since</p>
+                  <p className="text-sm font-medium text-foreground">{formatDate(joinDate)}</p>
                 </div>
               </div>
             </div>

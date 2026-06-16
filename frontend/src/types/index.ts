@@ -11,6 +11,7 @@ export interface User {
     slug: UserRole;
   };
   memberId?: Member;
+  profilePhoto?: string;
   createdAt?: string;
 }
 

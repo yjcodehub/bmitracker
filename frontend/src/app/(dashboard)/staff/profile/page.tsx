@@ -7,11 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogOut, Check, User as UserIcon, Camera, Edit, Shield } from "lucide-react";
+import { Loader2, LogOut, User as UserIcon, Camera, Edit, Shield } from "lucide-react";
 import { toast } from "sonner";
-import { User, Member } from "@/types";
+import { User } from "@/types";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { ImageEditorDialog } from "@/components/profile/ImageEditorDialog";
 
 export default function StaffProfilePage() {
   const router = useRouter();
@@ -22,6 +23,10 @@ export default function StaffProfilePage() {
   const [activeTab, setActiveTab] = useState<"overview" | "edit" | "photo">("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logout = useAuthStore((state) => state.logout);
+
+  // Photo upload state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState("");
 
   // Edit form state
   const [fullName, setFullName] = useState("");
@@ -103,39 +108,41 @@ export default function StaffProfilePage() {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.memberId?._id) return;
 
     // Validate size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Image file size must be less than 2MB");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+      setEditorOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSavePhoto = async (croppedBase64: string) => {
+    if (!user?.memberId?._id) return;
+    setEditorOpen(false);
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        try {
-          await api.put(`/members/${user.memberId!._id}`, { profilePhoto: base64String });
-          toast.success("Profile photo updated");
-          
-          // Re-fetch user to show the new picture
-          const userRes = await api.get<User>("/auth/me");
-          setUser(userRes.data);
-        } catch (err) {
-          toast.error("Failed to upload image");
-        } finally {
-          setIsSaving(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      await api.put(`/members/${user.memberId._id}`, { profilePhoto: croppedBase64 });
+      toast.success("Profile photo updated successfully");
+      
+      // Re-fetch user to show the new picture
+      const userRes = await api.get<User>("/auth/me");
+      setUser(userRes.data);
     } catch (err) {
-      console.error("File upload error:", err);
-      toast.error("Failed to read image file");
+      toast.error("Failed to upload image");
+    } finally {
       setIsSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -414,12 +421,12 @@ export default function StaffProfilePage() {
         )}
 
         {/* Logout Button */}
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center mt-10">
           <Button
-            variant="destructive"
+            variant="outline"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center gap-2 px-8 py-5 h-auto rounded-xl font-semibold text-base shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] w-full max-w-xs"
+            className="flex items-center gap-2 px-8 py-5 h-auto rounded-xl font-semibold text-base shadow-sm border border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive hover:text-destructive-foreground hover:shadow-lg hover:shadow-destructive/10 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] w-full max-w-xs"
           >
             {isLoggingOut ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -430,6 +437,17 @@ export default function StaffProfilePage() {
           </Button>
         </div>
       </div>
+
+      {/* Image Editor Dialog */}
+      <ImageEditorDialog
+        isOpen={editorOpen}
+        onClose={() => {
+          setEditorOpen(false);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }}
+        imageSrc={selectedImage}
+        onSave={handleSavePhoto}
+      />
     </div>
   );
 }
