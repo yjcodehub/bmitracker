@@ -10,6 +10,9 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Pagination } from "@/components/ui/pagination";
+import { Pagination as PaginationType } from "@/types";
+import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 interface Report {
   _id: string;
@@ -32,16 +35,26 @@ export default function StaffReportsPage() {
   const [loading, setLoading] = useState(true);
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const [emailingReportId, setEmailingReportId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationType | null>(null);
 
   const fetchReports = () => {
     setLoading(true);
+    const paramsList = [];
+    paramsList.push(`page=${page}`);
+    paramsList.push(`limit=10`);
+    if (search) paramsList.push(`search=${encodeURIComponent(search)}`);
+    const params = paramsList.length > 0 ? `?${paramsList.join("&")}` : "";
+
     api
-      .get<Report[]>("/reports")
+      .get<Report[]>(`/reports${params}`)
       .then((res) => {
         if (Array.isArray(res.data)) {
           setReports(res.data);
+          setPagination(res.pagination || null);
         } else {
           setReports([]);
+          setPagination(null);
         }
       })
       .catch((err) => {
@@ -52,8 +65,12 @@ export default function StaffReportsPage() {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
     fetchReports();
-  }, []);
+  }, [page, search]);
 
   const handleDownload = async (reportId: string, fileName: string) => {
     setDownloadingReportId(reportId);
@@ -97,14 +114,7 @@ export default function StaffReportsPage() {
     }
   };
 
-  const filteredReports = reports.filter((r) => {
-    const term = search.toLowerCase();
-    return (
-      r.memberId?.fullName?.toLowerCase().includes(term) ||
-      r.memberId?.membershipNumber?.toLowerCase().includes(term) ||
-      r.fileName.toLowerCase().includes(term)
-    );
-  });
+
 
   return (
     <div className="space-y-4 pb-12">
@@ -130,12 +140,12 @@ export default function StaffReportsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex justify-center items-center py-12 min-h-[40vh]">
+          <FitnessLoader label="Loading reports..." />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          {filteredReports.map((r) => (
+          {reports.map((r) => (
             <Card key={r._id} className="hover:shadow-sm transition-shadow">
               <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -201,12 +211,23 @@ export default function StaffReportsPage() {
             </Card>
           ))}
 
-          {filteredReports.length === 0 && (
+          {reports.length === 0 && (
             <div className="text-center text-muted-foreground py-12 bg-card rounded-lg border">
               <p>No reports found matching &quot;{search}&quot;</p>
             </div>
           )}
         </div>
+      )}
+
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.pages}
+          onPageChange={setPage}
+          totalItems={pagination.total}
+          limit={pagination.limit}
+          label="reports"
+        />
       )}
     </div>
   );

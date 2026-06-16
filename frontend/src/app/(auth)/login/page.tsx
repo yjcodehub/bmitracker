@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
 import { Eye, EyeOff } from 'lucide-react';
 
+import { toast } from 'sonner';
+
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().min(1, 'Password required'),
@@ -38,9 +40,12 @@ export default function LoginPage() {
     setError('');
     try {
       const role = await login(data.email, data.password);
+      toast.success('Signed in successfully');
       router.push(role === 'owner' ? '/owner' : role === 'staff' ? '/staff' : '/member');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errMsg = err instanceof Error ? err.message : 'Login failed';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }

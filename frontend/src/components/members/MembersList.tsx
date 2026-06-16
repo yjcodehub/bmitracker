@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import { Plus, Search, ChevronRight, CheckCircle, Ban, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -11,8 +11,27 @@ import { api } from "@/lib/api";
 import { Member } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
+import { Pagination } from "@/components/ui/pagination";
+import { Pagination as PaginationType } from "@/types";
+import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 
 export function MembersList() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <MembersListContent />
+    </Suspense>
+  );
+}
+
+function MembersListContent() {
+  const searchParams = useSearchParams();
   const role = useAuthStore((s) => s.user?.roleId?.slug || "member");
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
@@ -22,6 +41,8 @@ export function MembersList() {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [memberToApprove, setMemberToApprove] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationType | null>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   const statuses = [
@@ -32,21 +53,47 @@ export function MembersList() {
     { value: "archived", label: "Archived" },
   ];
 
+  // Initialize status and active tab from query params
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam) {
+      setStatus(statusParam);
+    }
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "member" || tabParam === "staff") {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
   const fetchMembers = () => {
     setLoading(true);
     const paramsList: string[] = [];
+    paramsList.push(`page=${page}`);
+    paramsList.push(`limit=10`);
     if (search) paramsList.push(`search=${encodeURIComponent(search)}`);
     if (status && status !== "all") paramsList.push(`status=${status}`);
     if (role === "owner") paramsList.push(`role=${activeTab}`);
-    
+
     const params = paramsList.length > 0 ? `?${paramsList.join("&")}` : "";
     api
       .get<Member[]>(`/members${params}`)
       .then((res) => {
         if (Array.isArray(res.data)) {
-          setMembers(res.data);
+          if (res.data.length === 0 && status === "pending_approval") {
+            toast.info("There are no pending members. Showing all active members instead.");
+            setStatus("active");
+          } else {
+            setMembers(res.data);
+            setPagination(res.pagination || null);
+          }
         } else {
-          setMembers([]);
+          if (status === "pending_approval") {
+            toast.info("There are no pending members. Showing all active members instead.");
+            setStatus("active");
+          } else {
+            setMembers([]);
+            setPagination(null);
+          }
         }
       })
       .catch(console.error)
@@ -54,8 +101,12 @@ export function MembersList() {
   };
 
   useEffect(() => {
-    fetchMembers();
+    setPage(1);
   }, [search, status, activeTab]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [page, search, status, activeTab]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -110,12 +161,21 @@ export function MembersList() {
         title={role === "owner" ? (activeTab === "staff" ? "Staff" : "Members") : "Members"}
         subtitle={`${members.length} ${role === "owner" && activeTab === "staff" ? "staff" : "members"} found`}
         actions={
-          <Button asChild size="sm">
-            <Link href={`/${role}/members/new`}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Member
-            </Link>
-          </Button>
+          role === "owner" && activeTab === "staff" ? (
+            <Button asChild size="sm">
+              <Link href="/owner/members/new?role=staff">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Staff
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm">
+              <Link href={`/${role}/members/new`}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Member
+              </Link>
+            </Button>
+          )
         }
       />
 
@@ -123,21 +183,19 @@ export function MembersList() {
         <div className="flex bg-muted/60 p-1 rounded-lg w-fit border border-border">
           <button
             onClick={() => setActiveTab("member")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              activeTab === "member"
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === "member"
                 ? "bg-background text-foreground shadow-sm font-semibold"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             Members
           </button>
           <button
             onClick={() => setActiveTab("staff")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              activeTab === "staff"
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === "staff"
                 ? "bg-background text-foreground shadow-sm font-semibold"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             Staff
           </button>
@@ -173,9 +231,8 @@ export function MembersList() {
                     setStatus(s.value);
                     setIsStatusOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    status === s.value ? "font-semibold text-primary" : "text-foreground"
-                  }`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${status === s.value ? "font-semibold text-primary" : "text-foreground"
+                    }`}
                 >
                   {s.label}
                 </button>
@@ -216,7 +273,7 @@ export function MembersList() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-0 pt-2 sm:pt-0">
                     <div className="text-left sm:text-right">
                       <span
@@ -258,6 +315,17 @@ export function MembersList() {
                 </Button>
               </Link>
             </div>
+          )}
+
+          {pagination && pagination.pages > 1 && (
+            <Pagination
+              currentPage={page}
+              totalPages={pagination.pages}
+              onPageChange={setPage}
+              totalItems={pagination.total}
+              limit={pagination.limit}
+              label={role === "owner" && activeTab === "staff" ? "staff members" : "members"}
+            />
           )}
         </div>
       )}

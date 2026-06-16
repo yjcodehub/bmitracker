@@ -72,10 +72,15 @@ export function ProfileHeader({
             )}
             {onEditPhoto && (
               <Button
+                type="button"
                 size="sm"
                 variant="secondary"
                 className="absolute bottom-0 right-0 rounded-full w-9 h-9 p-0 border shadow-md hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                onClick={onEditPhoto}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEditPhoto();
+                }}
               >
                 <Camera className="h-4 w-4" />
               </Button>

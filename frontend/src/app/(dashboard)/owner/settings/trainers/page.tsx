@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { Trainer } from "@/types";
+import { Trainer, Pagination as PaginationType } from "@/types";
 import { useRouter } from "next/navigation";
+import { Pagination } from "@/components/ui/pagination";
+import { toast } from "sonner";
 
 export default function TrainersPage() {
   const router = useRouter();
@@ -19,6 +21,8 @@ export default function TrainersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationType | null>(null);
   
   // Form state
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
@@ -30,14 +34,21 @@ export default function TrainersPage() {
 
   const fetchTrainers = () => {
     setLoading(true);
-    const params = search ? `?search=${encodeURIComponent(search)}` : "";
+    const paramsList = [];
+    paramsList.push(`page=${page}`);
+    paramsList.push(`limit=9`);
+    if (search) paramsList.push(`search=${encodeURIComponent(search)}`);
+    const params = paramsList.length > 0 ? `?${paramsList.join("&")}` : "";
+
     api
       .get<Trainer[]>(`/trainers${params}`)
       .then((res) => {
         if (Array.isArray(res.data)) {
           setTrainers(res.data);
+          setPagination(res.pagination || null);
         } else {
           setTrainers([]);
+          setPagination(null);
         }
       })
       .catch(console.error)
@@ -45,8 +56,12 @@ export default function TrainersPage() {
   };
 
   useEffect(() => {
-    fetchTrainers();
+    setPage(1);
   }, [search]);
+
+  useEffect(() => {
+    fetchTrainers();
+  }, [page, search]);
 
   const openAddModal = () => {
     setSelectedTrainer(null);
@@ -73,9 +88,11 @@ export default function TrainersPage() {
   const handleToggleStatus = async (trainer: Trainer) => {
     try {
       await api.put(`/trainers/${trainer._id}`, { isActive: !trainer.isActive });
+      toast.success("Trainer status updated successfully!");
       fetchTrainers();
     } catch (err) {
       console.error("Failed to toggle status:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to update trainer status");
     }
   };
 
@@ -83,9 +100,11 @@ export default function TrainersPage() {
     if (!confirm("Are you sure you want to delete this trainer?")) return;
     try {
       await api.delete(`/trainers/${id}`);
+      toast.success("Trainer deleted successfully!");
       fetchTrainers();
     } catch (err) {
       console.error("Failed to delete trainer:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete trainer");
     }
   };
 
@@ -105,13 +124,17 @@ export default function TrainersPage() {
     try {
       if (selectedTrainer) {
         await api.put(`/trainers/${selectedTrainer._id}`, payload);
+        toast.success("Trainer updated successfully!");
       } else {
         await api.post("/trainers", payload);
+        toast.success("Trainer created successfully!");
       }
       setIsModalOpen(false);
       fetchTrainers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save trainer");
+      const errMsg = err instanceof Error ? err.message : "Failed to save trainer";
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setSubmitLoading(false);
     }
@@ -197,6 +220,17 @@ export default function TrainersPage() {
             </div>
           )}
         </div>
+      )}
+
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.pages}
+          onPageChange={setPage}
+          totalItems={pagination.total}
+          limit={pagination.limit}
+          label="trainers"
+        />
       )}
 
       {/* Modal Dialog */}

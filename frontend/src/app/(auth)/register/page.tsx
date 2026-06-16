@@ -2,15 +2,18 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
-import { Eye, EyeOff } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -29,6 +32,7 @@ const registerSchema = z.object({
   currentWeight: z.coerce.number().min(20, 'Weight must be at least 20 kg').max(500, 'Invalid weight'),
   weightLossGoal: z.coerce.number().min(0).optional(),
   role: z.enum(['member', 'staff', 'owner']).default('member'),
+  membershipNumber: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -56,29 +60,78 @@ const getPasswordStrength = (password: string) => {
 };
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [flowState, setFlowState] = useState<'verify' | 'existing' | 'new'>('verify');
+  const [membershipId, setMembershipId] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { gender: 'male', role: 'member' },
+    defaultValues: { gender: 'male', role: 'member', membershipNumber: '' },
   });
 
   const watchedPassword = watch('password');
   const strength = getPasswordStrength(watchedPassword || '');
+
+  const handleVerifyMembership = async () => {
+    if (!membershipId) return;
+    setVerifying(true);
+    setError('');
+    try {
+      const res = await api.get<any>(`/auth/lookup-membership/${membershipId}`);
+      toast.success('Membership ID verified!');
+      
+      reset({
+        fullName: res.data.fullName,
+        email: res.data.email,
+        phone: res.data.contactNumber || '',
+        age: res.data.age,
+        gender: res.data.gender,
+        height: res.data.height,
+        currentWeight: res.data.currentWeight,
+        weightLossGoal: res.data.weightLossGoal || 0,
+        role: res.data.role || 'member',
+        membershipNumber: membershipId,
+        password: '',
+        confirmPassword: '',
+      });
+      
+      setFlowState('existing');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Membership ID not found or already registered';
+      setError(errMsg);
+      toast.error(errMsg);
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
     setError('');
     try {
       const { confirmPassword, ...payload } = data;
-      await api.post('/auth/register', payload);
-      setSuccess(true);
+      const response = await api.post<any>('/auth/register', payload);
+      
+      if (response.data?.accessToken) {
+        toast.success(response.message || 'Registration complete! Logged in.');
+        api.setToken(response.data.accessToken);
+        await useAuthStore.getState().fetchUser();
+        const userRole = useAuthStore.getState().user?.roleId?.slug || 'member';
+        router.push(userRole === 'owner' ? '/owner' : userRole === 'staff' ? '/staff' : '/member');
+      } else {
+        toast.success('Registration submitted successfully!');
+        setSuccess(true);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const errMsg = err instanceof Error ? err.message : 'Registration failed';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -86,14 +139,14 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-6 space-y-4">
-            <h2 className="text-xl font-bold">Registration Submitted</h2>
-            <p className="text-muted-foreground">
-              Your registration is pending admin approval. You will be notified once approved.
+      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
+        <Card className="w-full max-w-md text-center shadow-lg border border-border/80">
+          <CardContent className="pt-8 space-y-4">
+            <h2 className="text-2xl font-bold text-foreground">Registration Submitted</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Your registration is pending admin approval. You will be notified once the gym owner activates your account.
             </p>
-            <Button asChild>
+            <Button asChild className="w-full mt-2">
               <Link href="/login">Go to Login</Link>
             </Button>
           </CardContent>
@@ -102,29 +155,206 @@ export default function RegisterPage() {
     );
   }
 
+  if (flowState === 'verify') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
+        <Card className="w-full max-w-md shadow-lg border border-border/80">
+          <CardHeader className="space-y-1.5 pb-4">
+            <CardTitle className="text-2xl text-center font-bold">Register Account</CardTitle>
+            <CardDescription className="text-center text-muted-foreground">
+              Verify your gym membership details to get started.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="membershipId">Membership ID</Label>
+              <Input
+                id="membershipId"
+                placeholder="e.g. MEMxyz"
+                value={membershipId}
+                onChange={(e) => setMembershipId(e.target.value)}
+                className="text-center font-mono text-lg tracking-wider"
+              />
+              {error && <p className="text-xs text-destructive text-center font-medium mt-1">{error}</p>}
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleVerifyMembership}
+              className="w-full mt-2"
+              disabled={verifying || !membershipId}
+            >
+              {verifying ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Verifying ID...
+                </>
+              ) : (
+                'Verify & Continue'
+              )}
+            </Button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-3 text-muted-foreground">Or register fresh</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                reset({
+                  fullName: '',
+                  email: '',
+                  phone: '',
+                  age: '',
+                  gender: 'male',
+                  height: '',
+                  currentWeight: '',
+                  weightLossGoal: '',
+                  role: 'member',
+                  membershipNumber: '',
+                  password: '',
+                  confirmPassword: '',
+                } as any);
+                setFlowState('new');
+              }}
+              className="w-full border-muted-foreground/30 hover:bg-accent/40"
+            >
+              Register as a New Member
+            </Button>
+
+            <p className="text-center text-sm text-muted-foreground pt-2">
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary font-medium hover:underline">
+                Sign In
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen py-8 px-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">Member Registration</CardTitle>
+    <div className="min-h-screen py-10 px-4 bg-muted/30">
+      <Card className="w-full max-w-md mx-auto shadow-lg border border-border/80">
+        <CardHeader className="space-y-1.5 pb-4">
+          <CardTitle className="text-2xl text-center font-bold">
+            {flowState === 'existing' ? 'Generate Password' : 'Register Profile'}
+          </CardTitle>
+          <CardDescription className="text-center text-muted-foreground text-sm">
+            {flowState === 'existing' 
+              ? 'Complete your registration by generating your password.'
+              : 'Create a new member registration request below.'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {flowState === 'existing' && (
+            <div className="bg-muted/50 p-4 rounded-lg border border-border/60 text-sm space-y-2 mb-5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Verified Membership Details</p>
+              <div className="flex justify-between border-b border-border/40 pb-1.5">
+                <span className="text-muted-foreground">Name:</span>
+                <span className="font-semibold text-foreground">{watch('fullName')}</span>
+              </div>
+              <div className="flex justify-between border-b border-border/40 pb-1.5">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-semibold text-foreground">{watch('email')}</span>
+              </div>
+              <div className="flex justify-between border-b border-border/40 pb-1.5">
+                <span className="text-muted-foreground">Phone:</span>
+                <span className="font-semibold text-foreground">{watch('phone') || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Role:</span>
+                <span className="font-semibold text-foreground capitalize">{watch('role')}</span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input {...register('fullName')} />
-              {errors.fullName && <p className="text-sm text-destructive">{errors.fullName.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" {...register('email')} />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input {...register('phone')} />
-            </div>
-            <div className="space-y-2">
+            {/* Hidden fields for existing flow */}
+            {flowState === 'existing' && (
+              <>
+                <input type="hidden" {...register('fullName')} />
+                <input type="hidden" {...register('email')} />
+                <input type="hidden" {...register('phone')} />
+                <input type="hidden" {...register('age')} />
+                <input type="hidden" {...register('gender')} />
+                <input type="hidden" {...register('height')} />
+                <input type="hidden" {...register('currentWeight')} />
+                <input type="hidden" {...register('weightLossGoal')} />
+                <input type="hidden" {...register('role')} />
+                <input type="hidden" {...register('membershipNumber')} />
+              </>
+            )}
+
+            {flowState === 'new' && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Full Name</Label>
+                  <Input {...register('fullName')} placeholder="First & Last Name" />
+                  {errors.fullName && <p className="text-xs text-destructive font-medium">{errors.fullName.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" {...register('email')} placeholder="name@example.com" />
+                  {errors.email && <p className="text-xs text-destructive font-medium">{errors.email.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input {...register('phone')} placeholder="Contact phone number" />
+                  {errors.phone && <p className="text-xs text-destructive font-medium">{errors.phone.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Registering As</Label>
+                  <select {...register('role')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="member">Gym Member</option>
+                    <option value="staff">Gym Trainer / Staff</option>
+                  </select>
+                  {errors.role && <p className="text-xs text-destructive font-medium">{errors.role.message}</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Age</Label>
+                    <Input type="number" {...register('age')} placeholder="Age" />
+                    {errors.age && <p className="text-xs text-destructive font-medium">{errors.age.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Gender</Label>
+                    <select {...register('gender')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                    {errors.gender && <p className="text-xs text-destructive font-medium">{errors.gender.message}</p>}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Height (cm)</Label>
+                    <Input type="number" {...register('height')} placeholder="cm" />
+                    {errors.height && <p className="text-xs text-destructive font-medium">{errors.height.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Weight (kg)</Label>
+                    <Input type="number" step="0.1" {...register('currentWeight')} placeholder="kg" />
+                    {errors.currentWeight && <p className="text-xs text-destructive font-medium">{errors.currentWeight.message}</p>}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Weight Loss Goal (kg)</Label>
+                  <Input type="number" step="0.1" {...register('weightLossGoal')} placeholder="Optional goal" />
+                  {errors.weightLossGoal && <p className="text-xs text-destructive font-medium">{errors.weightLossGoal.message}</p>}
+                </div>
+              </>
+            )}
+
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
@@ -142,19 +372,19 @@ export default function RegisterPage() {
                 </button>
               </div>
               {watchedPassword && (
-                <div className="space-y-1.5 mt-1">
+                <div className="space-y-1.5 mt-1.5">
                   <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                     <div className={`h-full transition-all duration-300 ${strength.color} ${strength.width}`} />
                   </div>
-                  <p className={`text-xs font-semibold ${strength.textColor}`}>
+                  <p className={`text-[10px] font-semibold uppercase tracking-wide ${strength.textColor}`}>
                     Password Strength: {strength.label}
                   </p>
                 </div>
               )}
-              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs text-destructive font-medium">{errors.password.message}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
                 <Input
@@ -171,54 +401,35 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
+              {errors.confirmPassword && <p className="text-xs text-destructive font-medium">{errors.confirmPassword.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <select {...register('role')} className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="member">Member</option>
-                <option value="staff">Staff</option>
-                <option value="owner">Gym Owner</option>
-              </select>
-              {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Age</Label>
-                <Input type="number" {...register('age')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Gender</Label>
-                <select {...register('gender')} className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Height (cm)</Label>
-                <Input type="number" {...register('height')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Weight (kg)</Label>
-                <Input type="number" step="0.1" {...register('currentWeight')} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Weight Loss Goal (kg)</Label>
-              <Input type="number" step="0.1" {...register('weightLossGoal')} />
-            </div>
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Submitting...' : 'Register'}
+
+            {error && <p className="text-sm text-destructive text-center font-medium">{error}</p>}
+
+            <Button type="submit" className="w-full mt-2" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {flowState === 'existing' ? 'Generating Password...' : 'Submitting Profile...'}
+                </>
+              ) : (
+                flowState === 'existing' ? 'Generate Password & Login' : 'Register Account'
+              )}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">Sign In</Link>
-          </p>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setFlowState('verify');
+                setError('');
+              }}
+              className="text-xs text-muted-foreground font-medium hover:text-primary transition-colors hover:underline"
+            >
+              ← Go Back to Verify Membership
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>

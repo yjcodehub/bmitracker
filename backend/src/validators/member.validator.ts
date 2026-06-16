@@ -16,6 +16,7 @@ export const createMemberSchema = z.object({
   status: z.enum(['pending_approval', 'active', 'inactive', 'archived']).optional(),
   password: z.string().min(8).optional(),
   profilePhoto: z.string().optional(),
+  role: z.enum(['member', 'staff']).optional(),
 });
 
 export const updateMemberSchema = createMemberSchema.partial();

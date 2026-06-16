@@ -7,6 +7,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BMIDistributionChart } from '@/components/charts/BMIDistributionChart';
 import { WeightTrendChart } from '@/components/charts/WeightTrendChart';
+import { MemberGrowthChart } from '@/components/charts/MemberGrowthChart';
 import { api } from '@/lib/api';
 import { DashboardStats } from '@/types';
 import { formatDate } from '@/lib/utils';
@@ -16,16 +17,19 @@ export default function OwnerDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bmiDist, setBmiDist] = useState<{ category: string; count: number }[]>([]);
   const [weightTrends, setWeightTrends] = useState<{ date: string; avgWeight: number }[]>([]);
+  const [memberGrowth, setMemberGrowth] = useState<{ _id: { year: number; month: number }; count: number }[]>([]);
 
   const fetchDashboardStats = () => {
     Promise.all([
       api.get<DashboardStats>('/analytics/dashboard'),
       api.get<{ category: string; count: number }[]>('/analytics/bmi-distribution'),
       api.get<{ date: string; avgWeight: number }[]>('/analytics/weight-trends'),
-    ]).then(([dash, dist, trends]) => {
+      api.get<{ _id: { year: number; month: number }; count: number }[]>('/analytics/member-growth'),
+    ]).then(([dash, dist, trends, growth]) => {
       setStats(dash.data);
       setBmiDist(dist.data);
       setWeightTrends(trends.data);
+      setMemberGrowth(growth.data || []);
     }).catch(console.error);
   };
 
@@ -56,7 +60,7 @@ export default function OwnerDashboard() {
         <StatCard title="New Registrations" value={stats?.recentRegistrations?.length ?? '—'} icon={UserPlus} />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">BMI Category Distribution</CardTitle>
@@ -71,6 +75,14 @@ export default function OwnerDashboard() {
           </CardHeader>
           <CardContent>
             <WeightTrendChart data={weightTrends} />
+          </CardContent>
+        </Card>
+        <Card className="md:col-span-2 lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-base">Member Growth (Monthly)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MemberGrowthChart data={memberGrowth} />
           </CardContent>
         </Card>
       </div>

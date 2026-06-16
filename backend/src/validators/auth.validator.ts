@@ -16,6 +16,7 @@ export const registerSchema = z.object({
   currentWeight: z.number().min(20).max(500),
   weightLossGoal: z.number().min(0).optional(),
   role: z.enum(['member', 'staff', 'owner']).default('member'),
+  membershipNumber: z.string().optional(),
 });
 
 export const loginSchema = z.object({

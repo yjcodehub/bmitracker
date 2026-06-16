@@ -9,15 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Member, Trainer } from "@/types";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { toast } from "sonner";
 
 interface MemberFormProps {
   member?: Member;
   onSubmit?: (member: Member) => void;
+  forcedRole?: "member" | "staff";
 }
 
-export function MemberForm({ member, onSubmit }: MemberFormProps) {
+export function MemberForm({ member, onSubmit, forcedRole }: MemberFormProps) {
   const router = useRouter();
   const role = useAuthStore((s) => s.user?.roleId?.slug || "member");
+  const formRole = member?.userId?.roleId?.slug || forcedRole || "member";
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [trainers, setTrainers] = useState<Trainer[]>([]);
@@ -34,20 +38,20 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
     membershipNumber: member?.membershipNumber || "",
     trainerId: member?.trainerId || "",
     trainerName: member?.trainerName || "",
-    status: member?.status || "pending_approval",
+    status: member?.status || (formRole === "staff" ? "active" : "pending_approval"),
   });
 
   useEffect(() => {
-    api.get<Trainer[]>("/trainers?isActive=true")
-      .then((res) => {
-        // If trainer from API is returned, verify it's an array
-        if (Array.isArray(res.data)) {
-          setTrainers(res.data);
-          console.log("Trainers:", trainers);
-        }
-      })
-      .catch((err) => console.error("Failed to fetch trainers:", err));
-  }, []);
+    if (formRole !== "staff") {
+      api.get<Trainer[]>("/trainers?isActive=true")
+        .then((res) => {
+          if (Array.isArray(res.data)) {
+            setTrainers(res.data);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch trainers:", err));
+    }
+  }, [formRole]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -84,9 +88,10 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
         height: parseFloat(String(formData.height)),
         currentWeight: parseFloat(String(formData.currentWeight)),
         membershipNumber: formData.membershipNumber,
-        trainerId: formData.trainerId || undefined,
-        trainerName: formData.trainerName || undefined,
-        status: formData.status as "active" | "inactive" | "pending_approval" | "archived",
+        trainerId: formRole === "staff" ? undefined : (formData.trainerId || undefined),
+        trainerName: formRole === "staff" ? undefined : (formData.trainerName || undefined),
+        status: formRole === "staff" && !member ? "active" : (formData.status as "active" | "inactive" | "pending_approval" | "archived"),
+        role: formRole,
         ...(formData.idealWeight && {
           idealWeight: parseFloat(String(formData.idealWeight)),
         }),
@@ -98,17 +103,25 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
       let response;
       if (member?._id) {
         response = await api.put<Member>(`/members/${member._id}`, payload);
+        toast.success(formRole === "staff" ? "Staff details updated successfully!" : "Member details updated successfully!");
       } else {
         response = await api.post<Member>("/members", payload);
+        toast.success(formRole === "staff" ? "Staff created successfully!" : "Member created successfully!");
       }
 
       if (onSubmit) {
         onSubmit(response.data);
       } else {
-        router.push(`/${role}/members`);
+        if (formRole === "staff") {
+          router.push(`/${role}/members?tab=staff`);
+        } else {
+          router.push(`/${role}/members`);
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save member");
+      const errMsg = err instanceof Error ? err.message : "Failed to save member";
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -117,7 +130,11 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{member ? "Edit Member" : "Add New Member"}</CardTitle>
+        <CardTitle>
+          {member
+            ? (formRole === "staff" ? "Edit Staff" : "Edit Member")
+            : (formRole === "staff" ? "Add New Staff" : "Add New Member")}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -203,7 +220,7 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
                 value={formData.gender}
                 onChange={handleChange}
                 disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-background text-sm"
               >
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -211,24 +228,26 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
               </select>
             </div>
 
-            <div>
-              <Label htmlFor="trainerId">Assigned Trainer</Label>
-              <select
-                id="trainerId"
-                name="trainerId"
-                value={formData.trainerId}
-                onChange={handleTrainerChange}
-                disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-background text-sm"
-              >
-                <option value="">No Trainer Assigned</option>
-                {trainers.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.name} {t.specialization ? `(${t.specialization})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {formRole !== "staff" && (
+              <div>
+                <Label htmlFor="trainerId">Assigned Trainer</Label>
+                <select
+                  id="trainerId"
+                  name="trainerId"
+                  value={formData.trainerId}
+                  onChange={handleTrainerChange}
+                  disabled={loading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-background text-sm"
+                >
+                  <option value="">No Trainer Assigned</option>
+                  {trainers.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name} {t.specialization ? `(${t.specialization})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {member && (
               <div>
@@ -239,7 +258,7 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
                   value={formData.status}
                   onChange={handleChange}
                   disabled={loading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-background text-sm"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -316,7 +335,7 @@ export function MemberForm({ member, onSubmit }: MemberFormProps) {
 
           <div className="flex gap-3 pt-4">
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Member"}
+              {loading ? "Saving..." : (formRole === "staff" ? (member ? "Save Staff" : "Add Staff") : (member ? "Save Member" : "Add Member"))}
             </Button>
             <Button
               type="button"

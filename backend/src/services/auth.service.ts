@@ -17,10 +17,60 @@ export class AuthService {
     currentWeight: number;
     weightLossGoal?: number;
     role?: 'member' | 'staff' | 'owner';
+    membershipNumber?: string;
   }) {
     let settings = await Settings.findOne();
     if (!settings) {
       settings = await Settings.create({ gymName: 'My Gym' });
+    }
+
+    if (data.membershipNumber) {
+      const existingMember = await Member.findOne({ membershipNumber: data.membershipNumber });
+      if (existingMember) {
+        if (existingMember.userId) {
+          throw new AppError('This membership ID is already registered.', 400);
+        }
+
+        const roleSlug = existingMember.role || data.role || 'member';
+        const dbRole = await Role.findOne({ slug: roleSlug, isSystem: true });
+        if (!dbRole) throw new AppError(`${roleSlug} role not configured`, 500);
+
+        const existingUser = await User.findOne({ gymId: settings._id, email: existingMember.email });
+        if (existingUser) throw new AppError('Email already registered', 409);
+
+        const passwordHash = await bcrypt.hash(data.password, 12);
+        const user = await User.create({
+          gymId: settings._id,
+          roleId: dbRole._id,
+          email: existingMember.email,
+          phone: existingMember.contactNumber,
+          passwordHash,
+          memberId: existingMember._id,
+          status: 'active',
+        });
+
+        existingMember.userId = user._id;
+        existingMember.status = 'active';
+        await existingMember.save();
+
+        emailService.sendWelcomeApproved(existingMember.email, existingMember.fullName, settings.gymName).catch((err) => {
+          console.error('Failed to send welcome approved email:', err);
+        });
+
+        const tokens = this.generateTokens(user, roleSlug, dbRole._id.toString());
+        user.refreshToken = await bcrypt.hash(tokens.refreshToken, 10);
+        await user.save();
+
+        return {
+          user: {
+            id: user._id,
+            email: user.email,
+            roleId: user.roleId,
+          },
+          ...tokens,
+          message: 'Password generated successfully. Logged in.',
+        };
+      }
     }
 
     const roleSlug = data.role || 'member';
@@ -45,6 +95,7 @@ export class AuthService {
       weightLossGoal: data.weightLossGoal,
       membershipNumber,
       status: 'pending_approval',
+      role: roleSlug === 'owner' ? 'member' : (roleSlug as 'member' | 'staff'),
     });
 
     const user = await User.create({
@@ -59,12 +110,30 @@ export class AuthService {
 
     await Member.findByIdAndUpdate(member._id, { userId: user._id });
 
-    // Send welcome email on registration
     emailService.sendWelcome(data.email, data.fullName, settings.gymName).catch((err) => {
       console.error('Failed to send welcome email:', err);
     });
 
     return { user, member, message: 'Registration successful. Awaiting admin approval.' };
+  }
+
+  async lookupMembership(membershipNumber: string) {
+    const member = await Member.findOne({ membershipNumber })
+      .populate({
+        path: 'userId',
+        select: 'roleId',
+        populate: {
+          path: 'roleId',
+          select: 'slug name',
+        },
+      });
+    if (!member) {
+      throw new AppError('Membership ID not found', 404);
+    }
+    if (member.userId) {
+      throw new AppError('This membership ID is already registered.', 400);
+    }
+    return member;
   }
 
   async login(email: string, password: string) {

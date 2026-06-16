@@ -5,7 +5,7 @@ import { Scale, Activity, Target, TrendingDown } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WeightTrendChart } from '@/components/charts/WeightTrendChart';
+import { MemberProgressCharts } from '@/components/charts/MemberProgressCharts';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { BMIRecord } from '@/types';
@@ -13,7 +13,7 @@ import { BMIRecord } from '@/types';
 export default function MemberDashboard() {
   const user = useAuthStore((s) => s.user);
   const [latest, setLatest] = useState<BMIRecord | null>(null);
-  const [history, setHistory] = useState<{ date: string; avgWeight: number }[]>([]);
+  const [records, setRecords] = useState<BMIRecord[]>([]);
 
   const memberId = user?.memberId?._id;
 
@@ -22,17 +22,9 @@ export default function MemberDashboard() {
 
     api.get<BMIRecord[]>(`/bmi/member/${memberId}?limit=30`)
       .then((res) => {
-        const records = res.data;
-        if (records.length > 0) setLatest(records[0]);
-        setHistory(
-          records
-            .slice()
-            .reverse()
-            .map((r) => ({
-              date: new Date(r.analysisDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-              avgWeight: r.weight,
-            }))
-        );
+        const historyRecords = res.data;
+        if (historyRecords.length > 0) setLatest(historyRecords[0]);
+        setRecords(Array.isArray(historyRecords) ? historyRecords : []);
       })
       .catch(console.error);
   }, [memberId]);
@@ -75,14 +67,9 @@ export default function MemberDashboard() {
         <StatCard title="Goal Progress" value={goalProgress} icon={Target} />
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-base">Weight Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <WeightTrendChart data={history} />
-        </CardContent>
-      </Card>
+      <div className="mb-6 animate-in fade-in duration-300">
+        <MemberProgressCharts records={records} />
+      </div>
 
       {latest && (
         <Card>

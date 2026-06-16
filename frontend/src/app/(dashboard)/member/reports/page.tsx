@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 interface Report {
   _id: string;
@@ -89,8 +90,8 @@ export default function MemberReportsPage() {
       />
 
       {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex justify-center items-center py-12 min-h-[40vh]">
+          <FitnessLoader label="Loading your reports..." />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">

@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { Member } from "@/types";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const bmiSchema = z.object({
   memberId: z.string().min(1, "Member selection required"),
@@ -148,15 +149,17 @@ export default function NewBMIPage() {
     setValue("memberId", "", { shouldValidate: true });
     setIsOpen(false);
   };
-
   const onSubmit = async (data: BMIForm) => {
     setLoading(true);
     setError("");
     try {
       await api.post("/bmi", data);
+      toast.success("BMI analysis recorded successfully!");
       router.push("/staff");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save analysis");
+      const errMsg = err instanceof Error ? err.message : "Failed to save analysis";
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,7 @@ export interface IMember extends Document {
   registrationDate: Date;
   profilePhoto?: string;
   status: MemberStatus;
+  role: 'member' | 'staff';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +50,11 @@ const memberSchema = new Schema<IMember>(
       type: String,
       enum: ['pending_approval', 'active', 'inactive', 'archived'],
       default: 'pending_approval',
+    },
+    role: {
+      type: String,
+      enum: ['member', 'staff'],
+      default: 'member',
     },
   },
   { timestamps: true }

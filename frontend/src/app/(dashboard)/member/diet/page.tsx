@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 interface MealItem {
   name: string;
@@ -84,8 +85,8 @@ export default function MemberDietPage() {
       />
 
       {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex justify-center items-center py-12 min-h-[40vh]">
+          <FitnessLoader label="Loading your diet plan..." />
         </div>
       ) : dietPlan ? (
         <div className="space-y-6">

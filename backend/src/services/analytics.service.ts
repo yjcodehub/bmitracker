@@ -112,9 +112,10 @@ export class AnalyticsService {
   async getMemberGrowth(gymId: string, months = 6) {
     const since = new Date();
     since.setMonth(since.getMonth() - months);
+    const gymObjectId = new mongoose.Types.ObjectId(gymId);
 
     return Member.aggregate([
-      { $match: { gymId, registrationDate: { $gte: since } } },
+      { $match: { gymId: gymObjectId, registrationDate: { $gte: since } } },
       {
         $group: {
           _id: {

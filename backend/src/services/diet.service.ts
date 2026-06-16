@@ -1,5 +1,6 @@
 import { DietPlan } from '../models';
 import { AppError } from '../middleware/errorHandler';
+import { getPagination, buildPaginationMeta } from '../utils/pagination';
 
 export class DietService {
   async create(
@@ -35,8 +36,13 @@ export class DietService {
       isTemplate?: boolean;
       isActive?: boolean;
       search?: string;
+      page?: number;
+      limit?: number;
+      isVegetarian?: boolean;
+      isNonVegetarian?: boolean;
     } = {}
   ) {
+    const { skip, page, limit } = getPagination(options);
     const filter: Record<string, any> = { gymId };
     
     if (options.isTemplate !== undefined) {
@@ -47,13 +53,24 @@ export class DietService {
       filter.isActive = options.isActive;
     }
 
+    if (options.isVegetarian !== undefined) {
+      filter.isVegetarian = options.isVegetarian;
+    }
+
+    if (options.isNonVegetarian !== undefined) {
+      filter.isNonVegetarian = options.isNonVegetarian;
+    }
+
     if (options.search) {
       const escapedSearch = options.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.name = { $regex: escapedSearch, $options: 'i' };
     }
 
-    const plans = await DietPlan.find(filter).sort({ createdAt: -1 });
-    return plans;
+    const [plans, total] = await Promise.all([
+      DietPlan.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      DietPlan.countDocuments(filter),
+    ]);
+    return { plans, pagination: buildPaginationMeta(page, limit, total) };
   }
 
   async getById(id: string, gymId: string) {

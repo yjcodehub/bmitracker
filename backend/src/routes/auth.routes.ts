@@ -21,6 +21,7 @@ const authLimiter = rateLimit({
 });
 
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
+router.get('/lookup-membership/:membershipNumber', authLimiter, authController.lookupMembership);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
 router.post('/login/phone', authLimiter, validate(phoneLoginSchema), authController.sendOTP);
 router.post('/otp/send', authLimiter, validate(phoneLoginSchema), authController.sendOTP);

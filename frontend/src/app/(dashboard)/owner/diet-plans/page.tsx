@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Pagination } from "@/components/ui/pagination";
+import { Pagination as PaginationType } from "@/types";
 
 interface MealItem {
   name: string;
@@ -45,6 +47,8 @@ export default function DietPlansPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<DietPlan | null>(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationType | null>(null);
 
   // Form state
   const [selectedPlan, setSelectedPlan] = useState<DietPlan | null>(null);
@@ -78,7 +82,11 @@ export default function DietPlansPage() {
     const queryParams = [];
     queryParams.push("isTemplate=true");
     queryParams.push("isActive=true");
+    queryParams.push(`page=${page}`);
+    queryParams.push(`limit=6`);
     if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
+    if (filterVeg === "veg") queryParams.push("isVegetarian=true");
+    if (filterVeg === "non-veg") queryParams.push("isNonVegetarian=true");
 
     const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
 
@@ -87,8 +95,10 @@ export default function DietPlansPage() {
       .then((res) => {
         if (Array.isArray(res.data)) {
           setPlans(res.data);
+          setPagination(res.pagination || null);
         } else {
           setPlans([]);
+          setPagination(null);
         }
       })
       .catch((err) => {
@@ -99,8 +109,12 @@ export default function DietPlansPage() {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [search, filterVeg]);
+
+  useEffect(() => {
     fetchPlans();
-  }, [search]);
+  }, [page, search, filterVeg]);
 
   const openAddModal = () => {
     setSelectedPlan(null);
@@ -212,11 +226,7 @@ export default function DietPlansPage() {
     }
   };
 
-  const filteredPlans = plans.filter((p) => {
-    if (filterVeg === "veg") return p.isVegetarian;
-    if (filterVeg === "non-veg") return p.isNonVegetarian;
-    return true;
-  });
+
 
   return (
     <div className="space-y-4 pb-12">
@@ -229,7 +239,7 @@ export default function DietPlansPage() {
 
         <PageHeader
           title="Diet Templates"
-          subtitle={`${plans.length} templates configured`}
+          subtitle={`${pagination?.total ?? plans.length} templates configured`}
           actions={
             <Button onClick={openAddModal} size="sm">
               <Plus className="h-4 w-4 mr-2" /> Add Diet Template
@@ -279,7 +289,7 @@ export default function DietPlansPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPlans.map((p) => (
+          {plans.map((p) => (
             <Card key={p._id} className="overflow-hidden hover:shadow-md transition-shadow relative">
               <CardContent className="p-4 flex flex-col justify-between h-full gap-4">
                 <div className="space-y-3">
@@ -289,44 +299,42 @@ export default function DietPlansPage() {
                         <Utensils className="h-4 w-4 text-primary shrink-0" />
                         {p.name}
                       </h3>
-                      {p.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>}
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description || "No description provided."}</p>
                     </div>
-                    <div className="flex flex-col gap-1 items-end shrink-0">
+                    
+                    <div className="flex flex-col gap-1 shrink-0 items-end">
                       {p.isVegetarian && (
-                        <span className="flex items-center gap-1 text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
-                          <Leaf className="h-2.5 w-2.5" /> Veg
+                        <span className="flex items-center gap-0.5 text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                          <Leaf className="h-3 w-3" /> Veg
                         </span>
                       )}
                       {p.isNonVegetarian && (
-                        <span className="flex items-center gap-1 text-[10px] text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                        <span className="flex items-center gap-0.5 text-[10px] text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
                           Non-Veg
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="text-xs text-muted-foreground space-y-2 pt-3 border-t">
-                    <div className="flex items-center gap-1 text-primary">
-                      <Droplet className="h-3.5 w-3.5" />
-                      <span>Water Target: <strong>{p.waterIntakeGoal}</strong></span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-muted/50 text-[11px]">
+                  <div className="text-xs text-muted-foreground pt-2 border-t">
+                    <p className="flex items-center gap-1"><Droplet className="h-3.5 w-3.5 text-blue-500" /> <strong>Water:</strong> {p.waterIntakeGoal}</p>
+                    
+                    <div className="mt-2 grid grid-cols-2 gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
                       <div>
-                        <span className="font-semibold text-foreground">Breakfast:</span>{" "}
-                        <span className="truncate block">{p.meals.breakfast[0]?.items.join(", ") || "—"}</span>
+                        <span className="font-medium text-foreground text-[10px] block">Breakfast</span>
+                        <span className="text-[10px] truncate block">{p.meals.breakfast?.[0]?.items?.join(", ") || "—"}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-foreground">Lunch:</span>{" "}
-                        <span className="truncate block">{p.meals.lunch[0]?.items.join(", ") || "—"}</span>
+                        <span className="font-medium text-foreground text-[10px] block">Lunch</span>
+                        <span className="text-[10px] truncate block">{p.meals.lunch?.[0]?.items?.join(", ") || "—"}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-foreground">Evening Snack:</span>{" "}
-                        <span className="truncate block">{p.meals.eveningSnack[0]?.items.join(", ") || "—"}</span>
+                        <span className="font-medium text-foreground text-[10px] block">Dinner</span>
+                        <span className="text-[10px] truncate block">{p.meals.dinner?.[0]?.items?.join(", ") || "—"}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-foreground">Dinner:</span>{" "}
-                        <span className="truncate block">{p.meals.dinner[0]?.items.join(", ") || "—"}</span>
+                        <span className="font-medium text-foreground text-[10px] block">Snacks</span>
+                        <span className="text-[10px] truncate block">{(p.meals.eveningSnack?.[0]?.items || p.meals.midSnack?.[0]?.items)?.join(", ") || "—"}</span>
                       </div>
                     </div>
                   </div>
@@ -344,12 +352,23 @@ export default function DietPlansPage() {
             </Card>
           ))}
 
-          {filteredPlans.length === 0 && (
+          {plans.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground py-12">
               <p>No diet templates found. Click &quot;Add Diet Template&quot; to create one.</p>
             </div>
           )}
         </div>
+      )}
+
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.pages}
+          onPageChange={setPage}
+          totalItems={pagination.total}
+          limit={pagination.limit}
+          label="diet templates"
+        />
       )}
 
       {/* Editor Modal Dialog */}

@@ -1,9 +1,10 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { reportService } from '../services/report.service';
-import { Report } from '../models';
+import { Report, Member } from '../models';
 import { AppError } from '../middleware/errorHandler';
-import { sendSuccess } from '../utils/apiResponse';
+import { sendSuccess, sendPaginated } from '../utils/apiResponse';
+import { getPagination, buildPaginationMeta } from '../utils/pagination';
 
 export class ReportController {
   async generate(req: AuthRequest, res: Response, next: NextFunction) {
@@ -71,10 +72,48 @@ export class ReportController {
 
   async listAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const reports = await Report.find({ gymId: req.user!.gymId })
-        .populate('memberId', 'fullName membershipNumber')
-        .sort({ createdAt: -1 });
-      sendSuccess(res, reports);
+      const { page, limit, skip } = getPagination({
+        page: req.query.page ? Number(req.query.page) : undefined,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+      });
+
+      const conditions: Record<string, any>[] = [{ gymId: req.user!.gymId }];
+
+      if (req.query.search) {
+        const escapedSearch = String(req.query.search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = { $regex: escapedSearch, $options: 'i' };
+
+        // Find members whose name or membership number matches search query
+        const matchedMembers = await Member.find({
+          gymId: req.user!.gymId,
+          $or: [
+            { fullName: searchRegex },
+            { membershipNumber: searchRegex },
+          ],
+        }).select('_id');
+
+        const memberIds = matchedMembers.map((m) => m._id);
+
+        conditions.push({
+          $or: [
+            { fileName: searchRegex },
+            { memberId: { $in: memberIds } },
+          ],
+        });
+      }
+
+      const filter = conditions.length > 1 ? { $and: conditions } : conditions[0];
+
+      const [reports, total] = await Promise.all([
+        Report.find(filter)
+          .populate('memberId', 'fullName membershipNumber')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+        Report.countDocuments(filter),
+      ]);
+
+      sendPaginated(res, reports, buildPaginationMeta(page, limit, total));
     } catch (err) {
       next(err);
     }

@@ -54,12 +54,12 @@
 
 **Goal:** Charts, analytics, owner dashboard
 
-- [ ] Owner dashboard with stat cards
-- [ ] Recharts integration (BMI distribution, trends)
-- [ ] Member progress charts (weight, BMI, fat, muscle)
-- [ ] Analytics API endpoints
-- [ ] Search & filter on member lists
-- [ ] Pagination across all list views
+- [x] Owner dashboard with stat cards
+- [x] Recharts integration (BMI distribution, trends)
+- [x] Member progress charts (weight, BMI, fat, muscle)
+- [x] Analytics API endpoints
+- [x] Search & filter on member lists
+- [x] Pagination across all list views
 
 **Deliverable:** Full dashboard experience for all three roles.
 

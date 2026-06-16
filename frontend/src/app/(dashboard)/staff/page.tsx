@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 interface StaffStats {
   totalMembers: number;
@@ -44,8 +45,8 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center py-24 min-h-[50vh]">
+        <FitnessLoader label="Loading dashboard..." />
       </div>
     );
   }

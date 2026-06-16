@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageEditorDialog } from "@/components/profile/ImageEditorDialog";
+import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 interface GymSettings {
   name?: string;
@@ -58,6 +59,11 @@ export default function ProfilePage() {
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Image file size must be less than 2MB");
       if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (!user?._id) {
+      toast.error("User profile is not fully loaded. Please try again.");
       return;
     }
 
@@ -127,11 +133,8 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span>Loading profile...</span>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-50/50 to-white">
+        <FitnessLoader label="Loading profile..." />
       </div>
     );
   }

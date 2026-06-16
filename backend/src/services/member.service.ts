@@ -22,6 +22,7 @@ export class MemberService {
       membershipNumber?: string;
       status?: 'pending_approval' | 'active' | 'inactive' | 'archived';
       password?: string;
+      role?: 'member' | 'staff';
     },
     createdBy?: string
   ) {
@@ -40,12 +41,13 @@ export class MemberService {
     });
 
     if (data.password) {
-      const memberRole = await Role.findOne({ slug: 'member', isSystem: true });
-      if (memberRole) {
+      const userRoleSlug = data.role || 'member';
+      const userRole = await Role.findOne({ slug: userRoleSlug, isSystem: true });
+      if (userRole) {
         const passwordHash = await bcrypt.hash(data.password, 12);
         const user = await User.create({
           gymId,
-          roleId: memberRole._id,
+          roleId: userRole._id,
           email: data.email,
           phone: data.contactNumber,
           passwordHash,

@@ -13,6 +13,10 @@ import Link from "next/link";
 import { Edit, Trash2, ArrowLeft, CheckCircle, Scale, Activity, History, Loader2, Download, Mail, Utensils } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
+import { MemberProgressCharts } from "@/components/charts/MemberProgressCharts";
+import { Pagination } from "@/components/ui/pagination";
+import { Pagination as PaginationType } from "@/types";
+import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 export function MemberDetails() {
   const params = useParams();
@@ -23,6 +27,9 @@ export function MemberDetails() {
   const [history, setHistory] = useState<BMIRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [chartRecords, setChartRecords] = useState<BMIRecord[]>([]);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
@@ -34,13 +41,25 @@ export function MemberDetails() {
   const [downloadingRecordId, setDownloadingRecordId] = useState<string | null>(null);
   const [emailingRecordId, setEmailingRecordId] = useState<string | null>(null);
 
+  const fetchHistory = async () => {
+    try {
+      const historyRes = await api.get<BMIRecord[]>(`/bmi/member/${memberId}?page=${page}&limit=5`);
+      setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
+      setPagination(historyRes.pagination || null);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    }
+  };
+
   const fetchMemberDetails = async () => {
     try {
       const res = await api.get<Member>(`/members/${memberId}`);
       setMember(res.data);
       
-      const historyRes = await api.get<BMIRecord[]>(`/bmi/member/${memberId}?limit=10`);
-      setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
+      const chartRes = await api.get<BMIRecord[]>(`/bmi/member/${memberId}?limit=100`);
+      setChartRecords(Array.isArray(chartRes.data) ? chartRes.data : []);
+      
+      await fetchHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load member");
     } finally {
@@ -64,6 +83,12 @@ export function MemberDetails() {
       fetchMemberDetails();
     }
   }, [memberId]);
+
+  useEffect(() => {
+    if (memberId) {
+      fetchHistory();
+    }
+  }, [memberId, page]);
 
   const handleDownloadReport = async (recordId: string) => {
     setDownloadingRecordId(recordId);
@@ -136,9 +161,12 @@ export function MemberDetails() {
     setIsApproving(true);
     try {
       await api.post(`/members/${member._id}/approve`);
+      toast.success("Member registration approved successfully!");
       await fetchMemberDetails();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to approve member");
+      const errMsg = err instanceof Error ? err.message : "Failed to approve member";
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setIsApproving(false);
     }
@@ -150,17 +178,20 @@ export function MemberDetails() {
     setIsDeleting(true);
     try {
       await api.put(`/members/${memberId}`, { status: "archived" });
+      toast.success("Member archived successfully!");
       router.push(`/${role}/members`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to archive member");
+      const errMsg = err instanceof Error ? err.message : "Failed to archive member";
+      setError(errMsg);
+      toast.error(errMsg);
       setIsDeleting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center py-24 min-h-[50vh]">
+        <FitnessLoader label="Loading member details..." />
       </div>
     );
   }
@@ -343,6 +374,8 @@ export function MemberDetails() {
         </Card>
       )}
 
+      <MemberProgressCharts records={chartRecords} />
+
       <Card>
         <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle className="text-base flex items-center gap-2">
@@ -429,6 +462,17 @@ export function MemberDetails() {
             <p className="text-center text-muted-foreground py-8">
               No BMI history recorded yet.
             </p>
+          )}
+
+          {pagination && pagination.pages > 1 && (
+            <Pagination
+              currentPage={page}
+              totalPages={pagination.pages}
+              onPageChange={setPage}
+              totalItems={pagination.total}
+              limit={pagination.limit}
+              label="analyses"
+            />
           )}
         </CardContent>
       </Card>
