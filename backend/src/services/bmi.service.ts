@@ -88,7 +88,11 @@ export class BMIService {
   async getMemberHistory(memberId: string, page = 1, limit = 20) {
     const { skip, page: p, limit: l } = getPagination({ page, limit });
     const [records, total] = await Promise.all([
-      BMIRecord.find({ memberId }).sort({ analysisDate: -1 }).skip(skip).limit(l),
+      BMIRecord.find({ memberId })
+        .sort({ analysisDate: -1 })
+        .skip(skip)
+        .limit(l)
+        .populate('dietPlanId', 'name meals isVegetarian isNonVegetarian waterIntakeGoal'),
       BMIRecord.countDocuments({ memberId }),
     ]);
     return { records, pagination: buildPaginationMeta(p, l, total) };
@@ -103,6 +107,16 @@ export class BMIService {
 
   async delete(id: string) {
     const record = await BMIRecord.findByIdAndDelete(id);
+    if (!record) throw new AppError('BMI record not found', 404);
+    return record;
+  }
+
+  async assignDietPlan(id: string, dietPlanId: string | null) {
+    const record = await BMIRecord.findByIdAndUpdate(
+      id,
+      { dietPlanId: dietPlanId || null },
+      { new: true }
+    ).populate('dietPlanId', 'name meals');
     if (!record) throw new AppError('BMI record not found', 404);
     return record;
   }

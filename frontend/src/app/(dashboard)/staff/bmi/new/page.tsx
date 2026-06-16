@@ -29,6 +29,7 @@ const bmiSchema = z.object({
   trunkMuscleMass: z.coerce.number().min(0),
   armMuscleMass: z.coerce.number().min(0),
   legMuscleMass: z.coerce.number().min(0),
+  dietPlanId: z.string().optional(),
   trainerNotes: z.string().optional(),
 });
 
@@ -40,6 +41,7 @@ export default function NewBMIPage() {
   const preselectedMemberId = searchParams.get("memberId") || "";
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [dietPlans, setDietPlans] = useState<{ _id: string; name: string; isVegetarian: boolean; isNonVegetarian: boolean }[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,6 +67,16 @@ export default function NewBMIPage() {
   }
 
   useEffect(() => {
+    // Fetch diet templates
+    api
+      .get("/diet-plans?isTemplate=true&isActive=true")
+      .then((res) => {
+        if (Array.isArray(res.data)) {
+          setDietPlans(res.data);
+        }
+      })
+      .catch((err) => console.error("Failed to load diet templates:", err));
+
     api
       .get<Member[]>("/members?status=active")
       .then((res) => {
@@ -323,9 +335,28 @@ export default function NewBMIPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="trainerNotes">Trainer Notes</Label>
-              <Input id="trainerNotes" {...register("trainerNotes")} disabled={loading} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dietPlanId">Assign Diet Template</Label>
+                <select
+                  id="dietPlanId"
+                  {...register("dietPlanId")}
+                  disabled={loading}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">-- No Diet Plan --</option>
+                  {dietPlans.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} {p.isVegetarian ? "(🌿 Veg)" : ""} {p.isNonVegetarian ? "(🍖 Non-Veg)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="trainerNotes">Trainer Notes</Label>
+                <Input id="trainerNotes" {...register("trainerNotes")} disabled={loading} />
+              </div>
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

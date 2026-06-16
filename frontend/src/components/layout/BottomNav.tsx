@@ -50,7 +50,13 @@ export function BottomNav({ role }: { role: UserRole }) {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background safe-bottom md:hidden">
       <div className="flex items-center justify-around px-2 py-2">
         {items.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          let isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          
+          // Highlight Settings tab for any nested settings routes (including diet-plans)
+          if (item.href === '/owner/settings') {
+            isActive = pathname.startsWith('/owner/settings') || pathname.startsWith('/owner/diet-plans');
+          }
+          
           return (
             <Link
               key={item.href}

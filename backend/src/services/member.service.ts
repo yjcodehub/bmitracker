@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
-import { Member, User, Role } from '../models';
+import { Member, User, Role, Settings } from '../models';
 import { AppError } from '../middleware/errorHandler';
 import { getPagination, buildPaginationMeta } from '../utils/pagination';
+import { emailService } from './email.service';
 
 export class MemberService {
   async create(
@@ -54,6 +55,16 @@ export class MemberService {
         await Member.findByIdAndUpdate(member._id, { userId: user._id });
       }
     }
+
+    // Send welcome email on member creation
+    Settings.findById(gymId).then((settings) => {
+      const gymName = settings?.theme.gymName || 'FitZone Gym';
+      emailService.sendWelcome(data.email, data.fullName, gymName).catch((err) => {
+        console.error('Failed to send welcome email:', err);
+      });
+    }).catch((err) => {
+      console.error('Failed to fetch gym settings for welcome email:', err);
+    });
 
     return member;
   }
@@ -180,6 +191,16 @@ export class MemberService {
     if (member.userId) {
       await User.findByIdAndUpdate(member.userId, { status: 'active' });
     }
+
+    // Send welcome approved email
+    Settings.findById(gymId).then((settings) => {
+      const gymName = settings?.theme.gymName || 'FitZone Gym';
+      emailService.sendWelcomeApproved(member.email, member.fullName, gymName).catch((err) => {
+        console.error('Failed to send welcome approved email:', err);
+      });
+    }).catch((err) => {
+      console.error('Failed to fetch gym settings for welcome approved email:', err);
+    });
 
     return member;
   }

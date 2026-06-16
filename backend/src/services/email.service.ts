@@ -23,6 +23,14 @@ export class EmailService {
     );
   }
 
+  async sendWelcomeApproved(email: string, name: string, gymName: string) {
+    return this.send(
+      email,
+      `Welcome to ${gymName}!`,
+      `<h2>Welcome to the Gym, ${name}!</h2><p>Your membership registration has been approved. You can now log in to the portal and view your diet plans, progress, and reports.</p>`
+    );
+  }
+
   async sendReport(email: string, name: string, pdfBuffer: Buffer, fileName: string) {
     return this.send(
       email,

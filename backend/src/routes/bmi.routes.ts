@@ -14,6 +14,7 @@ router.post('/', requirePermission('bmi:create'), validate(createBMISchema), aud
 router.post('/calculate', requirePermission('bmi:create'), validate(calculateBMISchema), bmiController.calculate);
 router.get('/member/:memberId', requirePermission('bmi:read'), bmiController.getMemberHistory);
 router.get('/:id', requirePermission('bmi:read'), bmiController.getById);
+router.patch('/:id/diet', requirePermission('bmi:update'), auditLog('bmi.assign-diet', 'bmirecords'), bmiController.assignDietPlan);
 router.delete('/:id', requirePermission('bmi:delete'), auditLog('bmi.delete', 'bmirecords'), bmiController.delete);
 
 export default router;

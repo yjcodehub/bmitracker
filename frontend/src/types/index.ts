@@ -77,6 +77,7 @@ export interface BMIRecord {
     bodyFatStatus: string;
   };
   trainerNotes?: string;
+  dietPlanId?: any;
 }
 
 export interface DashboardStats {

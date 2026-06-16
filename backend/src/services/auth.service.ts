@@ -3,6 +3,7 @@ import { User, Member, Role, Settings } from '../models';
 import { generateAccessToken, generateRefreshToken, TokenPayload } from '../utils/jwt';
 import { generateOTP, hashOTP, verifyOTP, generateResetToken } from '../utils/otp';
 import { AppError } from '../middleware/errorHandler';
+import { emailService } from './email.service';
 
 export class AuthService {
   async register(data: {
@@ -57,6 +58,11 @@ export class AuthService {
     });
 
     await Member.findByIdAndUpdate(member._id, { userId: user._id });
+
+    // Send welcome email on registration
+    emailService.sendWelcome(data.email, data.fullName, settings.gymName).catch((err) => {
+      console.error('Failed to send welcome email:', err);
+    });
 
     return { user, member, message: 'Registration successful. Awaiting admin approval.' };
   }

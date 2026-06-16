@@ -148,8 +148,34 @@ export class ReportService {
       doc.moveDown();
 
       if (data.dietPlan) {
-        doc.fontSize(14).text(`Diet Plan: ${data.dietPlan.name}`);
-        doc.moveDown();
+        doc.font('Helvetica-Bold').fontSize(14).text(`Diet Plan: ${data.dietPlan.name}`);
+        doc.font('Helvetica').fontSize(10).text(`Water Intake: ${(data.dietPlan as any).waterIntakeGoal || '3-4 litres per day'}`);
+        doc.moveDown(0.5);
+
+        const meals = data.dietPlan.meals as any;
+        const mealKeys: { key: string; label: string }[] = [
+          { key: 'earlyMorning', label: 'Early Morning' },
+          { key: 'breakfast', label: 'Breakfast' },
+          { key: 'midSnack', label: 'Mid Snack' },
+          { key: 'lunch', label: 'Lunch' },
+          { key: 'eveningSnack', label: 'Evening Snack' },
+          { key: 'dinner', label: 'Dinner' }
+        ];
+
+        for (const mKey of mealKeys) {
+          const mealList = meals?.[mKey.key];
+          if (Array.isArray(mealList) && mealList.length > 0) {
+            doc.font('Helvetica-Bold').fontSize(11).text(mKey.label);
+            doc.font('Helvetica').fontSize(10);
+            for (const meal of mealList) {
+              if (meal.items && meal.items.length > 0) {
+                doc.text(`  - ${meal.items.join(', ')}`);
+              }
+            }
+            doc.moveDown(0.3);
+          }
+        }
+        doc.font('Helvetica').moveDown();
       }
 
       if (data.record.trainerNotes) {

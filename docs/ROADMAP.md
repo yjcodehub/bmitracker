@@ -38,13 +38,13 @@
 
 **Goal:** PDF reports, diet plans, email
 
-- [ ] Diet template CRUD (owner)
-- [ ] Diet assignment to BMI sessions
-- [ ] PDF report generation (PDFKit)
-- [ ] Report download / print / email
-- [ ] Nodemailer integration
-- [ ] Welcome email on registration
-- [ ] Analysis report email
+- [x] Diet template CRUD (owner)
+- [x] Diet assignment to BMI sessions
+- [x] PDF report generation (PDFKit)
+- [x] Report download / print / email
+- [x] Nodemailer integration
+- [x] Welcome email on registration
+- [x] Analysis report email
 
 **Deliverable:** Complete analysis → report → email workflow.
 

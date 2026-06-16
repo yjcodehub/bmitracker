@@ -60,6 +60,18 @@ export class BMIController {
       next(err);
     }
   }
+
+  async assignDietPlan(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const record = await bmiService.assignDietPlan(
+        String(req.params.id),
+        req.body.dietPlanId
+      );
+      sendSuccess(res, record, 'Diet plan assigned');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const bmiController = new BMIController();
