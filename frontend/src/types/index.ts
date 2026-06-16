@@ -103,3 +103,103 @@ export interface ApiResponse<T> {
   message?: string;
   pagination?: Pagination;
 }
+
+export interface GymTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  logo?: string;
+  gymName: string;
+  footerText: string;
+}
+
+export interface BMIRule {
+  min: number;
+  max: number;
+  category: string;
+  healthRisk: string;
+  suggestedAction: string;
+}
+
+export interface BodyCompositionRules {
+  visceralFat: { normal: number; high: number; risk: number };
+  trunkFat: { normalMax: number; highMin: number; highMax: number; riskMin: number };
+  bodyFat: {
+    male: { normalMin: number; normalMax: number; highMin: number; highMax: number; riskMin: number };
+    female: { normalMin: number; normalMax: number; highMin: number; highMax: number; riskMin: number };
+  };
+  muscleMass: {
+    male: { normalMin: number; normalMax: number };
+    female: { normalMin: number; normalMax: number };
+  };
+  bmrReference: { male: number; female: number };
+}
+
+export interface EmailSettings {
+  welcomeEmailEnabled: boolean;
+  reportEmailEnabled: boolean;
+  reminderEmailEnabled: boolean;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpFrom?: string;
+  hasPassword?: boolean;
+}
+
+export interface Permission {
+  _id: string;
+  resource: string;
+  action: string;
+  slug: string;
+  description: string;
+}
+
+export interface Role {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  permissionIds: Permission[] | string[];
+  isSystem: boolean;
+  gymId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AuditLog {
+  _id: string;
+  gymId: string;
+  userId: {
+    _id: string;
+    email: string;
+    phone?: string;
+    memberId?: {
+      _id: string;
+      fullName: string;
+    };
+  };
+  action: string;
+  resource: string;
+  resourceId?: string;
+  metadata?: {
+    method?: string;
+    path?: string;
+    [key: string]: any;
+  };
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
+export interface StaffUser {
+  _id: string;
+  email: string;
+  phone?: string;
+  status: 'active' | 'inactive' | 'pending_verification';
+  roleId: Role;
+  memberId?: {
+    _id: string;
+    fullName: string;
+    contactNumber?: string;
+  };
+  createdAt?: string;
+}

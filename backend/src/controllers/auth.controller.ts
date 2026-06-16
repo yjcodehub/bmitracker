@@ -17,7 +17,7 @@ export class AuthController {
   async lookupMembership(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { membershipNumber } = req.params;
-      const result = await authService.lookupMembership(membershipNumber);
+      const result = await authService.lookupMembership(membershipNumber as string);
       sendSuccess(res, result);
     } catch (err) {
       next(err);

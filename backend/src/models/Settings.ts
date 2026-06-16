@@ -34,6 +34,7 @@ export interface IEmailSettings {
   smtpHost?: string;
   smtpPort?: number;
   smtpUser?: string;
+  smtpPassword?: string;
   smtpFrom?: string;
   welcomeEmailEnabled: boolean;
   reportEmailEnabled: boolean;
@@ -126,6 +127,11 @@ const settingsSchema = new Schema<ISettings>(
       welcomeEmailEnabled: { type: Boolean, default: true },
       reportEmailEnabled: { type: Boolean, default: true },
       reminderEmailEnabled: { type: Boolean, default: true },
+      smtpHost: { type: String, default: '' },
+      smtpPort: { type: Number, default: 587 },
+      smtpUser: { type: String, default: '' },
+      smtpPassword: { type: String, default: '' },
+      smtpFrom: { type: String, default: '' },
     },
     printSettings: {
       showLogo: { type: Boolean, default: true },

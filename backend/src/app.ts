@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { env } from "./config/env";
 import routes from "./routes";
 import { errorHandler } from "./middleware/errorHandler";
@@ -35,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/api/v1", routes);
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use(errorHandler);
 

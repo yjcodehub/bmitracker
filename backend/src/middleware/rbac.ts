@@ -5,6 +5,14 @@ import { Role, Permission } from '../models';
 
 const permissionCache = new Map<string, Set<string>>();
 
+export function clearPermissionCache(roleSlug?: string, roleId?: string) {
+  if (roleSlug && roleId) {
+    permissionCache.delete(`${roleSlug}:${roleId}`);
+  } else {
+    permissionCache.clear();
+  }
+}
+
 export async function loadRolePermissions(roleSlug: string, roleId: string): Promise<Set<string>> {
   const cacheKey = `${roleSlug}:${roleId}`;
   if (permissionCache.has(cacheKey)) {

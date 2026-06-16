@@ -69,13 +69,13 @@
 
 **Goal:** Owner configuration panel
 
-- [ ] Theme management (colors, logo, gym name)
-- [ ] BMI classification rules editor
-- [ ] Body composition rules editor
-- [ ] Email settings configuration
-- [ ] Staff management CRUD
-- [ ] RBAC role editor
-- [ ] Audit log viewer
+- [x] Theme management (colors, logo, gym name)
+- [x] BMI classification rules editor
+- [x] Body composition rules editor
+- [x] Email settings configuration
+- [x] Staff management CRUD
+- [x] RBAC role editor
+- [x] Audit log viewer
 
 **Deliverable:** Owner can fully configure the gym system.
 
