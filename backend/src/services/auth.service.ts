@@ -253,6 +253,19 @@ export class AuthService {
     return { message: 'Password reset successful' };
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await User.findById(userId).select('+passwordHash');
+    if (!user) throw new AppError('User not found', 404);
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) throw new AppError('Incorrect current password', 400);
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    user.passwordHash = newHash;
+    await user.save();
+    return { message: 'Password changed successfully' };
+  }
+
   private buildPayload(
     user: { _id: unknown; gymId: unknown; email: string; memberId?: unknown },
     roleSlug: string,
