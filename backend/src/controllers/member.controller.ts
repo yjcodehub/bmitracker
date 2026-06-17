@@ -37,6 +37,24 @@ export class MemberController {
 
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      if (req.user?.roleSlug === 'member') {
+        const allowedFields = [
+          'fullName',
+          'contactNumber',
+          'age',
+          'gender',
+          'height',
+          'currentWeight',
+          'idealWeight',
+          'weightLossGoal',
+          'profilePhoto',
+        ];
+        Object.keys(req.body).forEach((key) => {
+          if (!allowedFields.includes(key)) {
+            delete req.body[key];
+          }
+        });
+      }
       const member = await memberService.update(String(req.params.id), req.user!.gymId, req.body);
       sendSuccess(res, member);
     } catch (err) {

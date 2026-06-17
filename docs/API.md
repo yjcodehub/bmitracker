@@ -27,15 +27,20 @@ Base URL: `http://localhost:5000/api/v1`
 | POST | `/auth/refresh` | Refresh access token | Refresh cookie |
 | POST | `/auth/logout` | Invalidate refresh token | Auth |
 | GET | `/auth/me` | Current user profile | Auth |
+| POST | `/auth/change-password` | Change user password | Auth |
 
 ## Members
+
+> [!NOTE]
+> **Member Role Constraints**: Users with the `member` role can only view (`GET /members/:id`) and update (`PUT /members/:id`) their own member record (where `:id` matches `req.user.memberId`). All other actions (list, create, delete, approve) return `403 Forbidden` for members.
+> When updating, input is automatically sanitized to only allow editing personal fields (`fullName`, `contactNumber`, `age`, `gender`, `height`, `currentWeight`, `idealWeight`, `weightLossGoal`, `profilePhoto`).
 
 | Method | Endpoint | Permission | Description |
 |--------|----------|------------|-------------|
 | GET | `/members` | `members:read` | List members (paginated, filterable) |
-| GET | `/members/:id` | `members:read` | Get member detail |
+| GET | `/members/:id` | `members:read` | Get member detail (Owner, Staff, or Self) |
 | POST | `/members` | `members:create` | Create member |
-| PUT | `/members/:id` | `members:update` | Update member |
+| PUT | `/members/:id` | `members:update` | Update member details (Owner, Staff, or Self) |
 | DELETE | `/members/:id` | `members:delete` | Soft-delete member |
 | POST | `/members/:id/approve` | `members:approve` | Approve pending registration |
 | GET | `/members/:id/history` | `members:read` | BMI + body analysis history |

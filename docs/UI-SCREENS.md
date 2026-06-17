@@ -49,11 +49,9 @@
 | Screen | Route | Description |
 |--------|-------|-------------|
 | Member Dashboard | `/member` | Current stats + goal progress |
-| My Profile | `/member/profile` | Edit personal info |
-| BMI History | `/member/bmi` | Analysis timeline |
-| Progress Charts | `/member/progress` | Weight, BMI, fat, muscle charts |
+| My Profile | `/member/profile` | View details, update profile photo with crop/adjustment dialog, dynamic BMI score card, target goal progress tracker, and change password |
+| Progress Charts | `/member/progress` | Interactive trend curves, initial vs latest metric deltas, unlocked milestone checkup badges, and collapsible chronological diagnostic logs |
 | My Reports | `/member/reports` | Download past reports |
-| Goals | `/member/goals` | Weight loss goal tracker |
 | Diet Plan | `/member/diet` | Assigned diet view |
 
 ---

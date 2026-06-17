@@ -19,6 +19,10 @@ export default function OwnerDashboard() {
   const [weightTrends, setWeightTrends] = useState<{ date: string; avgWeight: number }[]>([]);
   const [memberGrowth, setMemberGrowth] = useState<{ _id: { year: number; month: number }; count: number }[]>([]);
 
+  // Confirmation Modal States
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [memberToApprove, setMemberToApprove] = useState<string | null>(null);
+
   const fetchDashboardStats = () => {
     Promise.all([
       api.get<DashboardStats>('/analytics/dashboard'),
@@ -37,13 +41,21 @@ export default function OwnerDashboard() {
     fetchDashboardStats();
   }, []);
 
-  const handleApprove = async (id: string) => {
-    if (!confirm("Are you sure you want to approve this member?")) return;
+  const handleApproveClick = (id: string) => {
+    setMemberToApprove(id);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!memberToApprove) return;
     try {
-      await api.post(`/members/${id}/approve`);
+      await api.post(`/members/${memberToApprove}/approve`);
       fetchDashboardStats();
     } catch (err) {
       console.error("Failed to approve member:", err);
+    } finally {
+      setIsConfirmOpen(false);
+      setMemberToApprove(null);
     }
   };
 
@@ -107,8 +119,8 @@ export default function OwnerDashboard() {
                   {m.status === "pending_approval" && (
                     <Button
                       size="sm"
-                      onClick={() => handleApprove(m._id)}
-                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-7 px-2"
+                      onClick={() => handleApproveClick(m._id)}
+                      className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-7 px-2 rounded-lg font-bold"
                     >
                       Approve
                     </Button>
@@ -118,6 +130,40 @@ export default function OwnerDashboard() {
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Confirmation Dialog */}
+      {isConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-background rounded-2xl border border-border/80 shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-6 space-y-4">
+              <h2 className="text-lg font-bold text-foreground">Approve Member Registration</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Are you sure you want to approve this member? This will activate their account and grant them access to the gym portal.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsConfirmOpen(false);
+                    setMemberToApprove(null);
+                  }}
+                  className="rounded-xl h-9 px-4 font-semibold text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleConfirmApprove}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl h-9 px-4 text-xs"
+                >
+                  Approve Member
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

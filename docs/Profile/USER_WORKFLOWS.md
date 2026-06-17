@@ -157,39 +157,52 @@ Update gym details (name, address, hours, contact, website, GST number)
 
 ---
 
-## Workflow 3: Uploading Profile Picture (Future)
+## Workflow 3: Uploading and Previewing Profile Picture
 
 ### Primary Actor
 
-Gym Owner/Administrator
+Gym Owner, Staff, or Member
 
 ### Goal
 
-Upload and set a custom profile picture
+Upload, crop/adjust, and set a custom profile picture, and view the high-resolution photo in a lightbox modal.
 
 ### Preconditions
 
-- Profile picture upload feature is enabled
-- User has image file to upload
+- User is viewing their Profile page.
+- User has an image file (PNG, JPEG, WebP, max 2MB) on their device.
 
 ### Main Flow
 
 1. **User initiates upload**
-   - On profile page, user clicks camera icon on avatar
-   - File picker dialog opens
+   - User clicks the Camera icon on the circular profile avatar.
+   - Device file picker opens.
 
 2. **User selects image**
-   - User selects image from device
-   - File is validated (format, size)
+   - User selects an image.
+   - System validates size (must be under 2MB).
+   - Image loads in the custom `ImageEditorDialog` viewport.
 
-3. **Image uploads**
-   - Image uploads to cloud storage
-   - Profile avatar updates in real-time
-   - Success toast displays
+3. **User crops and adjusts photo**
+   - User zooms/scales the image (1x to 3x).
+   - User pans the image by dragging (drag & drop coordinates map to canvas space).
+   - User adjusts brightness (50% to 150%) and contrast (50% to 150%).
+   - User clicks "Apply Crop".
+
+4. **Image updates and uploads**
+   - System draws the adjusted image on a canvas, applies filters, and exports as a Base64 string.
+   - System updates the database.
+   - Profile avatar displays the updated picture.
+   - Success toast displays.
+
+5. **User previews high-resolution photo**
+   - User clicks directly on the circular profile avatar.
+   - A lightbox modal/overlay opens displaying the full cropped image.
+   - User clicks the "X" close button or background overlay to close the preview.
 
 ### Status
 
-🔄 Not yet implemented
+✅ Fully implemented and active for Members, Owners, and Staff.
 
 ---
 
@@ -206,7 +219,9 @@ Dashboard
       │   ├→ Cancel → Back to Profile
       │   └→ Back Arrow → Back to Profile
       │
-      ├→ Edit Photo → Future Feature (avatar upload dialog)
+      ├→ Edit Photo → Avatar Upload & Cropping (ImageEditorDialog)
+      │
+      ├→ Click Avatar Image → Fullscreen Lightbox Photo Preview
       │
       └→ Back to Previous Page
 ```
@@ -215,7 +230,10 @@ Dashboard
 
 | Route                          | Component       | Purpose                   |
 | ------------------------------ | --------------- | ------------------------- |
-| `/owner/settings/profile`      | ProfilePage     | View profile and gym info |
+| `/owner/profile`               | ProfilePage     | View owner profile details|
+| `/staff/profile`               | ProfilePage     | View staff profile details|
+| `/member/profile`              | ProfilePage     | View and edit member profile details, targets, password |
+| `/owner/settings/profile`      | ProfilePage     | View gym info settings    |
 | `/owner/settings/profile/edit` | ProfileEditPage | Edit gym information      |
 
 ---
