@@ -301,7 +301,7 @@ export default function DietPlansPage() {
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description || "No description provided."}</p>
                     </div>
-                    
+
                     <div className="flex flex-col gap-1 shrink-0 items-end">
                       {p.isVegetarian && (
                         <span className="flex items-center gap-0.5 text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
@@ -318,7 +318,7 @@ export default function DietPlansPage() {
 
                   <div className="text-xs text-muted-foreground pt-2 border-t">
                     <p className="flex items-center gap-1"><Droplet className="h-3.5 w-3.5 text-blue-500" /> <strong>Water:</strong> {p.waterIntakeGoal}</p>
-                    
+
                     <div className="mt-2 grid grid-cols-2 gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
                       <div>
                         <span className="font-medium text-foreground text-[10px] block">Breakfast</span>

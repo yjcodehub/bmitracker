@@ -37,15 +37,17 @@ ProfileEditPage (/owner/settings/profile/edit)
 
 ### ProfileHeader Component
 
-**Type**: Presentational Component (Read-Only)
+**Type**: Interactive Header Component
 
-**State**: None (fully controlled by props)
+**State**:
+
+- `isPreviewOpen: boolean`: controls whether the high-resolution profile photo preview lightbox is visible.
 
 **Dependencies**:
 
-- React Hooks: `useState` (for future avatar editing)
+- React Hooks: `useState` (for photo preview toggle)
 - UI Components: Card, CardContent
-- Icons: Camera, Mail, Phone, Calendar
+- Icons: Camera, Mail, Phone, Calendar, X
 
 **Props**:
 
@@ -66,6 +68,7 @@ interface ProfileHeaderProps {
 - Falls back to "?" if no email
 - Responsive grid layout
 - Icon-based information display
+- Clickable circular avatar that displays a high-resolution lightbox overlay when clicked.
 
 **Rendering Logic**:
 

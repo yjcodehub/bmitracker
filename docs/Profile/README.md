@@ -301,12 +301,15 @@ Exports:
 5. On success, redirected to profile page
 6. Success toast notification displayed
 
-### Future: Uploading Profile Picture
+### Uploading and Editing Profile Picture
 
-1. Click camera icon on avatar
-2. Select image file
-3. Image uploads and displays
-4. Toast confirmation
+1. Click camera icon on avatar circle.
+2. Select image file (supported formats: PNG, JPEG, WebP, max 2MB).
+3. The image is loaded into the `ImageEditorDialog` viewport.
+4. Drag/pan, zoom, and adjust brightness/contrast as desired.
+5. Click "Apply Crop" to save. The cropped image is uploaded as a Base64 string.
+6. The updated profile image displays on the header.
+7. Click the avatar image circle directly to open a lightbox modal for high-resolution preview.
 
 ## Error Handling
 
@@ -325,16 +328,15 @@ Exports:
 
 ## Future Enhancements
 
-1. **Avatar Upload**: Implement image upload functionality with cloud storage
-2. **Profile Picture Editing**: Add image cropping and size adjustment
-3. **Phone Number Validation**: Add phone number format validation
-4. **Website Validation**: Verify website URL validity
-5. **GST Number Format**: Add GST number format validation
-6. **Gym Logo**: Add separate gym logo upload
-7. **Working Days**: Add ability to set different hours for different days
-8. **Holidays**: Add holiday dates where gym is closed
-9. **Profile Photo History**: Keep track of previous profile pictures
-10. **Email Verification**: Add email change with verification
+1. **Cloud Storage**: Transition from storing avatar images as Base64 in database to uploading them to S3 or similar cloud storage.
+2. **Phone Number Validation**: Add phone number format validation
+3. **Website Validation**: Verify website URL validity
+4. **GST Number Format**: Add GST number format validation
+5. **Gym Logo**: Add separate gym logo upload
+6. **Working Days**: Add ability to set different hours for different days
+7. **Holidays**: Add holiday dates where gym is closed
+8. **Profile Photo History**: Keep track of previous profile pictures
+9. **Email Verification**: Add email change with verification
 
 ## File Structure
 

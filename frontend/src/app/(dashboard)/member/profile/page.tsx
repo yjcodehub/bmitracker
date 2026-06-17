@@ -2,19 +2,22 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  User as UserIcon, 
-  Scale, 
-  Activity, 
-  Target, 
-  Lock, 
-  Camera, 
-  Loader2, 
-  Check, 
+import {
+  User as UserIcon,
+  Scale,
+  Activity,
+  Target,
+  Lock,
+  Camera,
+  Loader2,
+  Check,
   AlertTriangle,
   Heart,
   Shield,
-  Trash2
+  Trash2,
+  Eye,
+  EyeOff,
+  LogOut
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
@@ -30,10 +33,28 @@ import { FitnessLoader } from "@/components/ui/FitnessLoader";
 
 type ActiveTab = "personal" | "fitness" | "security";
 
+const getPasswordStrength = (password: string) => {
+  if (!password) return { score: 0, label: '', color: 'bg-gray-200', textColor: 'text-muted-foreground', width: 'w-0' };
+
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[!@#$%^&*(),.?":{}|<>_+\-*\/[\]\\`~';]/.test(password)) score++;
+
+  if (score <= 2) {
+    return { score, label: 'Weak', color: 'bg-red-500', textColor: 'text-red-500', width: 'w-1/3' };
+  } else if (score <= 4) {
+    return { score, label: 'Good', color: 'bg-amber-500', textColor: 'text-amber-500', width: 'w-2/3' };
+  } else {
+    return { score, label: 'Best', color: 'bg-green-500', textColor: 'text-green-500', width: 'w-full' };
+  }
+};
+
 export default function MemberProfilePage() {
   const router = useRouter();
-  const { user, fetchUser } = useAuthStore();
-  
+  const { user, fetchUser, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ActiveTab>("personal");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,6 +82,12 @@ export default function MemberProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const strength = getPasswordStrength(newPassword);
+  const isConfirmPasswordMismatched = confirmPassword !== "" && newPassword !== confirmPassword;
 
   useEffect(() => {
     if (user?.memberId) {
@@ -161,6 +188,11 @@ export default function MemberProfilePage() {
       toast.error("New password must be at least 8 characters long");
       return;
     }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_+\-*\/[\]\\`~';])/;
+    if (!passwordRegex.test(newPassword)) {
+      toast.error("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+      return;
+    }
 
     setIsChangingPassword(true);
     try {
@@ -172,11 +204,25 @@ export default function MemberProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
     } catch (error) {
       console.error("Failed to change password:", error);
       toast.error(error instanceof Error ? error.message : "Failed to change password");
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      toast.error("Failed to log out");
     }
   };
 
@@ -241,7 +287,7 @@ export default function MemberProfilePage() {
   const getGoalProgressPct = () => {
     if (!targetWeight || !startingWeight) return 0;
     if (startingWeight === targetWeight) return 100;
-    
+
     // Check if goal is weight loss
     if (startingWeight > targetWeight) {
       if (currentW <= targetWeight) return 100;
@@ -298,33 +344,30 @@ export default function MemberProfilePage() {
         <div className="flex border-b border-border bg-card/65 backdrop-blur-sm rounded-t-xl overflow-x-auto scrollbar-none shadow-sm">
           <button
             onClick={() => setActiveTab("personal")}
-            className={`flex items-center gap-2 px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200 shrink-0 ${
-              activeTab === "personal"
+            className={`flex items-center gap-2 px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200 shrink-0 ${activeTab === "personal"
                 ? "border-primary text-primary bg-primary/5"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
-            }`}
+              }`}
           >
             <UserIcon className="h-4 w-4" />
             Personal Details
           </button>
           <button
             onClick={() => setActiveTab("fitness")}
-            className={`flex items-center gap-2 px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200 shrink-0 ${
-              activeTab === "fitness"
+            className={`flex items-center gap-2 px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200 shrink-0 ${activeTab === "fitness"
                 ? "border-primary text-primary bg-primary/5"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
-            }`}
+              }`}
           >
             <Activity className="h-4 w-4" />
             Goals & BMI Analysis
           </button>
           <button
             onClick={() => setActiveTab("security")}
-            className={`flex items-center gap-2 px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200 shrink-0 ${
-              activeTab === "security"
+            className={`flex items-center gap-2 px-6 py-4 border-b-2 font-semibold text-sm transition-all duration-200 shrink-0 ${activeTab === "security"
                 ? "border-primary text-primary bg-primary/5"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
-            }`}
+              }`}
           >
             <Lock className="h-4 w-4" />
             Account Security
@@ -508,7 +551,7 @@ export default function MemberProfilePage() {
                             <div className="h-full w-[70%] bg-rose-400" />
                           </div>
                           {/* Selector Pin */}
-                          <div 
+                          <div
                             className="absolute -top-0.5 h-3 w-3 rounded-full border-2 border-background shadow bg-foreground transition-all duration-500"
                             style={{ left: `${bmiCat.pct}%`, transform: 'translateX(-50%)' }}
                           />
@@ -612,7 +655,7 @@ export default function MemberProfilePage() {
                         </div>
                         {/* Visual Progress Bar */}
                         <div className="h-3 w-full bg-muted rounded-full overflow-hidden border">
-                          <div 
+                          <div
                             className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-1000"
                             style={{ width: `${progressPct}%` }}
                           />
@@ -664,46 +707,105 @@ export default function MemberProfilePage() {
                 {/* Current Password */}
                 <div className="space-y-1.5">
                   <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={isChangingPassword}
-                    placeholder="••••••••"
-                    className="h-11 rounded-lg"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPassword ? "text" : "password"}
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      placeholder="••••••••"
+                      className="h-11 rounded-lg pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* New Password */}
                 <div className="space-y-1.5">
                   <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={isChangingPassword}
-                    placeholder="Minimum 8 characters"
-                    className="h-11 rounded-lg"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      placeholder="Minimum 8 characters"
+                      className="h-11 rounded-lg pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {newPassword && (
+                    <div className="space-y-1.5 mt-1.5">
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-300 ${strength.color} ${strength.width}`} />
+                      </div>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[10px] font-semibold">
+                        <p className={`uppercase tracking-wide ${strength.textColor}`}>
+                          Password Strength: {strength.label}
+                        </p>
+                        <span className="text-muted-foreground font-normal normal-case">
+                          Must contain uppercase, lowercase, number & special char
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Confirm New Password */}
                 <div className="space-y-1.5">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isChangingPassword}
-                    placeholder="••••••••"
-                    className="h-11 rounded-lg"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      placeholder="••••••••"
+                      className={`h-11 rounded-lg pr-10 ${isConfirmPasswordMismatched ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {isConfirmPasswordMismatched && (
+                    <p className="text-xs text-red-500 font-semibold mt-1">
+                      Passwords do not match
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -720,6 +822,18 @@ export default function MemberProfilePage() {
               </div>
             </form>
           )}
+        </div>
+
+        {/* Modern Logout Button at the bottom center */}
+        <div className="flex justify-center pt-8">
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-2 h-11 px-8 rounded-xl font-extrabold text-rose-600 hover:text-white border-rose-200 hover:border-rose-600 bg-rose-50/30 hover:bg-rose-600 shadow-sm transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <LogOut className="h-4 w-4" /> Logout
+          </Button>
         </div>
       </div>
 

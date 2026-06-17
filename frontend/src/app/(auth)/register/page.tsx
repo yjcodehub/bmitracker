@@ -76,7 +76,9 @@ export default function RegisterPage() {
   });
 
   const watchedPassword = watch('password');
+  const watchedConfirmPassword = watch('confirmPassword');
   const strength = getPasswordStrength(watchedPassword || '');
+  const isConfirmPasswordMismatched = watchedConfirmPassword && watchedPassword !== watchedConfirmPassword;
 
   const handleVerifyMembership = async () => {
     if (!membershipId) return;
@@ -390,7 +392,7 @@ export default function RegisterPage() {
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  className="pr-10"
+                  className={`pr-10 ${isConfirmPasswordMismatched ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   {...register('confirmPassword')}
                 />
                 <button
@@ -401,7 +403,11 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.confirmPassword && <p className="text-xs text-destructive font-medium">{errors.confirmPassword.message}</p>}
+              {isConfirmPasswordMismatched ? (
+                <p className="text-xs text-red-500 font-semibold mt-1">Passwords do not match</p>
+              ) : (
+                errors.confirmPassword && <p className="text-xs text-destructive font-medium">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             {error && <p className="text-sm text-destructive text-center font-medium">{error}</p>}
